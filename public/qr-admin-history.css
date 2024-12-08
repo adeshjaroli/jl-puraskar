@@ -1,0 +1,184 @@
+/* Basic Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    text-align: center;
+    padding: 20px;
+    color: #333;
+}
+
+/* Total Coupons and Points */
+.total-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.total-info p {
+    margin: 0;
+}
+
+/* Filters Section */
+.filters-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.filter {
+    display: flex;
+    flex-direction: column;
+    width: 22%;
+}
+
+.filter label {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.filter input {
+    padding: 10px;
+    margin-top: 5px;
+    font-size: 16px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#filter-btn {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#filter-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Search Bar Styling */
+.search-container {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 20px;
+}
+
+#search-input {
+    padding: 10px;
+    font-size: 16px;
+    width: 300px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#search-btn {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#search-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Table Styling */
+.table-container {
+    width: 100%;
+    margin: 20px auto;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 500px;
+    overflow-y: scroll;
+    margin-bottom: 20px;
+    overflow-x: auto; /* Enable horizontal scroll */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+    word-wrap: break-word;
+    max-width: 100px; /* Ensure content fits */
+}
+
+table th {
+    background-color: #007bff;
+    color: white;
+}
+
+table tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Media Queries for Mobile Responsiveness */
+@media (max-width: 768px) {
+    .filters-container {
+        flex-direction: column; /* Stack filters vertically */
+        align-items: center;
+    }
+
+    .filter {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    #search-input {
+        width: 80%; /* Adjust search input width on smaller screens */
+    }
+
+    .search-container {
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    .table-container {
+        max-height: 400px; /* Reduce height on mobile */
+    }
+
+    table th, table td {
+        font-size: 12px; /* Reduce font size for smaller screens */
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .total-info {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .total-info p {
+        margin-bottom: 10px;
+    }
+
+    #search-input {
+        width: 100%;
+    }
+}

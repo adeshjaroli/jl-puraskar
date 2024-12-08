@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Balances</title> 
+    <style>
+        /* General body and container styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        /* Filters and search bar styling */
+        .filters-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .filters-container input,
+        .filters-container select,
+        .filters-container button {
+            padding: 10px;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .filters-container input,
+        .filters-container select {
+            width: 150px;
+        }
+
+        .filters-container button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .filters-container button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        table th, table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        /* Scrollable table body */
+        .table-container {
+            height: 400px; /* Adjust as needed */
+            overflow-y: auto;
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            text-align: left;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* Responsive table for mobile */
+        @media screen and (max-width: 768px) {
+            table {
+                font-size: 12px;
+                overflow-x: auto;
+                display: block;
+            }
+
+            .filters-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filters-container input,
+            .filters-container select,
+            .filters-container button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Additional Styling for Buttons and Table */
+        .filters-container button {
+            width: auto;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wallet Balances</h1>
+
+        <!-- Filters Section -->
+        <div class="filters-container">
+            <!-- Search Bar -->
+            <input type="text" id="searchBar" class="search-bar" placeholder="Search by mobile number or name" onkeyup="filterTable()">
+            
+            <!-- Min and Max Balance Filters -->
+            <input type="number" id="minBalance" placeholder="Min Balance" onkeyup="filterTable()">
+            <input type="number" id="maxBalance" placeholder="Max Balance" onkeyup="filterTable()">
+            
+            <!-- Filter Button -->
+            <button onclick="filterTable()">Apply Filters</button>
+        </div>
+
+        <!-- Scrollable Wallet Balances Table -->
+        <div class="table-container">
+            <table id="walletTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Mobile Number</th>
+                        <th>Wallet Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% users.forEach(user => { %>
+                        <tr>
+                            <td><%= user.fullName %></td>
+                            <td><%= user.mobileNumber %></td>
+                            <td>₹<%= isNaN(parseFloat(user.walletBalance)) ? '0.00' : parseFloat(user.walletBalance).toFixed(2) %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Function to filter the table based on the search and filters
+        function filterTable() {
+            const searchQuery = document.getElementById("searchBar").value.toLowerCase();
+            const minBalance = parseFloat(document.getElementById("minBalance").value) || 0;
+            const maxBalance = parseFloat(document.getElementById("maxBalance").value) || Infinity;
+            const rows = document.querySelectorAll("#walletTable tbody tr");
+
+            rows.forEach(row => {
+                const name = row.cells[0].textContent.toLowerCase();
+                const mobileNumber = row.cells[1].textContent;
+                const walletBalance = parseFloat(row.cells[2].textContent.replace('₹', ''));
+
+                const nameMatch = name.includes(searchQuery) || mobileNumber.includes(searchQuery);
+                const balanceMatch = walletBalance >= minBalance && walletBalance <= maxBalance;
+
+                if (nameMatch && balanceMatch) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+    </script>
+</body>
+</html>

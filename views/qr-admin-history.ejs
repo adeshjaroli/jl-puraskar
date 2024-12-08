@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scan History</title>
+    <link rel="stylesheet" href="/admin/qr-admin-history.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <h1>QR Scan History</h1>
+
+    <!-- Total Coupons and Points -->
+    <div class="total-info">
+        <p>Total Coupons Scanned: <span id="total-coupons">0</span></p>
+        <p>Total Points: ₹<span id="total-points">0.00</span></p>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-container">
+        <!-- Date Filter -->
+        <div class="filter">
+            <label for="start-date">Start Date:</label>
+            <input type="date" id="start-date" />
+        </div>
+        <div class="filter">
+            <label for="end-date">End Date:</label>
+            <input type="date" id="end-date" />
+        </div>
+        <!-- Mobile Number Filter -->
+        <div class="filter">
+            <label for="mobile-number">Mobile Number:</label>
+            <input type="text" id="mobile-number" placeholder="Enter Mobile Number" />
+        </div>
+        <!-- Points Filter -->
+        <div class="filter">
+            <label for="points">Points:</label>
+            <input type="number" id="points" placeholder="Enter Points" />
+        </div>
+        <button id="filter-btn">Apply Filters</button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Search by QR Code" />
+        <button id="search-btn"><i class="fa fa-search"></i></button>
+    </div>
+
+    <!-- QR Scan History Table -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mobile Number</th>
+                    <th>Name</th>
+                    <th>QR Batch</th>
+                    <th>QR Code</th>
+                    <th>Date Scanned</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody id="history-table-body">
+                <% qrHistory.reverse().forEach(qr => { %> <!-- Reverse the order of the data -->
+                    <tr>
+                        <td><%= qr.mobileNumber %></td>
+                        <td><%= qr.name %></td>
+                        <td><%= qr.qrBatch %></td>
+                        <td><%= qr.qrCode %></td>
+                        <td><%= qr.dateScanned %></td>
+                        <td><%= qr.points %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let totalCoupons = 0;
+        let totalPoints = 0;
+
+        // JavaScript for search functionality
+        document.getElementById('search-btn').addEventListener('click', filterTable);
+        document.getElementById('search-input').addEventListener('input', filterTable);
+
+        function filterTable() {
+            const query = document.getElementById('search-input').value.trim().toLowerCase();
+            const rows = document.querySelectorAll('#history-table-body tr');
+
+            rows.forEach(row => {
+                const qrCode = row.cells[3].textContent.toLowerCase(); // Search by QR Code (column 4)
+                if (qrCode.includes(query)) {
+                    row.style.display = ''; // Show matching row
+                } else {
+                    row.style.display = 'none'; // Hide non-matching row
+                }
+            });
+        }
+
+        // JavaScript for filter functionality
+        document.getElementById('filter-btn').addEventListener('click', applyFilters);
+
+        function applyFilters() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const mobileNumber = document.getElementById('mobile-number').value.trim().toLowerCase();
+            const points = document.getElementById('points').value.trim();
+
+            const rows = document.querySelectorAll('#history-table-body tr');
+            let filteredCoupons = 0;
+            let filteredPoints = 0;
+
+            rows.forEach(row => {
+                const dateScanned = row.cells[4].textContent;
+                const mobile = row.cells[0].textContent.toLowerCase();
+                const couponPoints = row.cells[5].textContent;
+                
+                // Check if the row matches the filters
+                const isDateMatch = (!startDate || dateScanned >= startDate) && (!endDate || dateScanned <= endDate);
+                const isMobileMatch = mobile.includes(mobileNumber);
+                const isPointsMatch = (!points || couponPoints === points);
+
+                if (isDateMatch && isMobileMatch && isPointsMatch) {
+                    row.style.display = ''; // Show row
+                    filteredCoupons++;
+                    filteredPoints += parseFloat(couponPoints);
+                } else {
+                    row.style.display = 'none'; // Hide row
+                }
+            });
+
+            // Update totals after filtering
+            document.getElementById('total-coupons').textContent = filteredCoupons;
+            document.getElementById('total-points').textContent = filteredPoints.toFixed(2);
+        }
+
+        // Initial total calculation
+        function calculateTotals() {
+            const rows = document.querySelectorAll('#history-table-body tr');
+            rows.forEach(row => {
+                totalCoupons++;
+                totalPoints += parseFloat(row.cells[5].textContent);
+            });
+            document.getElementById('total-coupons').textContent = totalCoupons;
+            document.getElementById('total-points').textContent = totalPoints.toFixed(2);
+        }
+
+        // Call calculate totals on page load
+        window.onload = calculateTotals;
+    </script>
+</body>
+</html>

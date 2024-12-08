@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Codes for Batch <%= batchId %></title>
+    <link rel="stylesheet" href="/admin/view-qr-batch.css">
+    <!-- Include Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QR Codes for Batch <%= batchId %></h1>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search by QR Code" onkeyup="searchQR()">
+            <button onclick="searchQR()"><i class="fas fa-search"></i></button>
+        </div>
+
+        <!-- QR Codes Table -->
+        <div class="qr-table">
+            <div class="qr-header">
+                <div class="qr-col">QR Code</div>
+                <div class="qr-col">Points</div>
+                <div class="qr-col">Status</div>
+                <div class="qr-col">Actions</div>
+            </div>
+
+            <% qrCodes.forEach(function(qr) { %>
+                <div class="qr-row">
+                    <div class="qr-col"><%= qr.code %></div>
+                    <div class="qr-col"><%= qr.points %></div>
+                    <div class="qr-col">
+                        <span class="<%= qr.status === 'Scanned' ? 'status-scanned' : 'status-not-scanned' %>">
+                            <%= qr.status %>
+                        </span>
+                    </div>
+                    <div class="qr-col actions">
+                        <i class="fas fa-edit" onclick="editPoints('<%= qr.code %>')"></i>
+                        <i class="<%= qr.status === 'Scanned' ? 'fas fa-toggle-off' : 'fas fa-toggle-on' %>"
+                           onclick="toggleActivation('<%= qr.code %>')"></i>
+                        <i class="fas fa-qrcode" onclick="viewQRCode('<%= qr.code %>')"></i>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <div class="back-button">
+            <button onclick="window.history.back()">Back to Batches</button>
+        </div>
+    </div>
+
+    <script>
+        function searchQR() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('.qr-row');
+            rows.forEach(row => {
+                const qrCode = row.querySelector('.qr-col').textContent.toLowerCase();
+                if (qrCode.includes(searchInput)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        async function editPoints(qrCode) {
+            const newPoints = prompt("Enter new points for this QR code:");
+            if (newPoints) {
+                try {
+                    await fetch('/admin/edit-qr/' + qrCode, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ points: newPoints }),
+                    });
+
+                    // Locate the row using the correct selector
+                    const rows = document.querySelectorAll('.qr-row');
+                    rows.forEach(row => {
+                        const codeCell = row.querySelector('.qr-col');  // The first .qr-col holds the code
+                        if (codeCell.textContent === qrCode) {
+                            row.querySelectorAll('.qr-col')[1].textContent = newPoints; // Update points column
+                        }
+                    });
+                } catch (error) {
+                    alert("Error updating points: " + error.message);
+                }
+            }
+        }
+
+        async function toggleActivation(qrCode) {
+    try {
+        const response = await fetch(`/admin/toggle-qr-status/${qrCode}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert(`QR Code ${qrCode} status updated to: ${data.status}`);
+
+            // Update the UI
+            const row = [...document.querySelectorAll('.qr-row')].find(r =>
+                r.querySelector('.qr-col').textContent.trim() === qrCode
+            );
+            if (row) {
+                const statusCol = row.querySelector('.qr-col:nth-child(3)');
+                const toggleIcon = row.querySelector('.fa-toggle-on, .fa-toggle-off');
+
+                // Update status and toggle button
+                statusCol.textContent = data.status;
+                statusCol.className = data.status === 'Scanned' ? 'status-scanned' : 'status-not-scanned';
+                toggleIcon.className = data.status === 'Scanned' ? 'fas fa-toggle-off' : 'fas fa-toggle-on';
+            }
+        } else {
+            alert("Failed to update QR code status.");
+        }
+    } catch (error) {
+        console.error("Error toggling QR code status:", error);
+        alert("Error toggling QR code status.");
+    }
+}
+
+
+
+function viewQRCode(qrCode) {
+    window.open(`/admin/view-qr-image/${qrCode}`, "_blank");
+}
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Apply History</title>
+    <link rel="stylesheet" href="/admin/qrhistory.css">
+</head>
+<body>
+    <div class="qr-history-container">
+        <div class="top-bar">
+            <h1 class="heading">QR Apply History</h1>
+            <div class="search-bar-container">
+                <input type="text" id="search-bar" placeholder="Search 9-digit QR Code" class="search-bar">
+                <button id="search-btn" class="search-btn">Search</button>
+            </div>
+        </div>
+        <div class="filter-bar">
+            <label for="start-date">Start Date:</label>
+            <input type="date" id="start-date" class="date-input">
+            <label for="end-date">End Date:</label>
+            <input type="date" id="end-date" class="date-input">
+        </div>
+        <div class="summary-container">
+            <div class="summary-box">
+                <h3>Total Points</h3>
+                <p id="total-points">0</p>
+            </div>
+            <div class="summary-box">
+                <h3>Total QR Scanned</h3>
+                <p id="total-scanned">0</p>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date Scanned</th>
+                        <th>QR Batch ID</th>
+                        <th>QR Code (9-digit)</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody id="coupon-table-body">
+                    <!-- Data from EJS will be inserted here -->
+                    <% coupons.forEach(function(coupon) { %>
+                        <tr class="coupon-row">
+                            <td><%= coupon.dateScanned %></td>
+                            <td><%= coupon.qrBatch %></td>
+                            <td><%= coupon.qrCode %></td>
+                            <td><%= coupon.points %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Data for coupons (this would come from the backend, here for demo purposes)
+        const coupons = <%- JSON.stringify(coupons) %>; // Injecting server-side data into JS
+
+        const couponTableBody = document.getElementById("coupon-table-body");
+        const totalPoints = document.getElementById("total-points");
+        const totalScanned = document.getElementById("total-scanned");
+        const searchBar = document.getElementById("search-bar");
+        const searchBtn = document.getElementById("search-btn");
+        const startDateInput = document.getElementById("start-date");
+        const endDateInput = document.getElementById("end-date");
+
+        // Function to filter coupons by 9-digit QR code
+        function searchCoupons() {
+            const searchTerm = searchBar.value.trim();
+            const filteredCoupons = coupons.filter(coupon => coupon.qrCode.includes(searchTerm));
+
+            displayCoupons(filteredCoupons);
+        }
+
+        // Function to filter coupons by date range
+        function filterByDateRange() {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+
+            const filteredCoupons = coupons.filter(coupon => {
+                const couponDate = new Date(coupon.dateScanned);
+                return (!startDate || couponDate >= startDate) && (!endDate || couponDate <= endDate);
+            });
+
+            displayCoupons(filteredCoupons);
+        }
+
+        // Function to display filtered coupons
+        function displayCoupons(filteredCoupons) {
+            couponTableBody.innerHTML = ""; // Clear the table body
+
+            let totalPointsValue = 0;
+            filteredCoupons.forEach(function(coupon) {
+                const row = document.createElement("tr");
+                row.classList.add("coupon-row");
+                
+                row.innerHTML = `
+                    <td>${coupon.dateScanned}</td>
+                    <td>${coupon.qrBatch}</td>
+                    <td>${coupon.qrCode}</td>
+                    <td>${coupon.points}</td>
+                `;
+
+                couponTableBody.appendChild(row);
+
+                totalPointsValue += coupon.points;
+            });
+
+            // Update the total points and total scanned count
+            totalPoints.innerText = totalPointsValue;
+            totalScanned.innerText = filteredCoupons.length;
+        }
+
+        // Event listener for the search button
+        searchBtn.addEventListener("click", searchCoupons);
+
+        // Event listeners for start and end date inputs
+        startDateInput.addEventListener("input", filterByDateRange);
+        endDateInput.addEventListener("input", filterByDateRange);
+
+        // Initial display of all coupons
+        displayCoupons(coupons);
+    </script>
+</body>
+</html>

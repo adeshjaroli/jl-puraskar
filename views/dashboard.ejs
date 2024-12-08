@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/admin/dashboard.css">
+    <style>
+        /* Add styles for the banner section */
+        .banner-section {
+            width: 100%;
+            position: relative;
+        }
+
+        .slider {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+
+        .slide {
+            width: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .slide.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Top Bar: Logo and Logout Button -->
+        <div class="top-bar">
+            <img src="/admin/images/jlpuraskar.png" alt="Logo" class="logo">
+            <form id="logoutForm" action="/user/logout" method="POST" style="margin: 0;">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+
+        <!-- Greeting Section -->
+        <div class="greeting">
+            <p>Hi <%= userName %> 👋</p>
+        </div>
+
+        <!-- Wallet Balance Section -->
+<div class="wallet-section">
+    <p>Available Balance</p>
+    <h2>₹<%= (isNaN(walletBalance) ? 0 : parseFloat(walletBalance)).toFixed(2) %></h2>
+    <div class="wallet-actions">
+        <button class="wallet-btn withdraw-btn">
+            <img src="https://img.icons8.com/ios-filled/50/000000/wallet.png" alt="Withdraw Icon">
+            Withdraw
+        </button>
+        <a href="/user/scan-qr" class="wallet-btn">
+            <img src="https://img.icons8.com/ios-filled/50/000000/qr-code.png" alt="Scan QR Icon">
+            Scan QR
+        </a>
+    </div>
+</div>
+
+
+        <!-- Banner Section with Image Slider -->
+        <div class="banner-section">
+            <div class="slider">
+                <img src="/admin/images/banner1.jpg" alt="Banner 1" class="slide active">
+                <img src="/admin/images/banner2.jpg" alt="Banner 2" class="slide">
+                <img src="/admin/images/banner3.jpg" alt="Banner 3" class="slide">
+            </div>
+        </div>
+
+        <!-- Rounded Box with Action Buttons -->
+        <div class="action-box">
+            <button class="action-btn" title="Scan QR">
+                <div class="icon-container">
+                    <img src="https://img.icons8.com/ios-filled/50/000000/bell.png" alt="Scan QR">
+                    <span class="icon-label">Schemes</span>
+                </div>
+            </button>
+            <a href="/user/qr-apply-history">
+                <button class="action-btn" title="History">
+                    <div class="icon-container">
+                        <img src="https://img.icons8.com/ios-filled/50/000000/time-machine.png" alt="History">
+                        <span class="icon-label">QR History</span>
+                    </div>
+                </button>
+            </a>
+            
+            <button class="action-btn" title="Edit Profile">
+                <div class="icon-container">
+                    <img src="https://img.icons8.com/ios-filled/50/000000/wallet.png" alt="Edit Profile">
+                    <span class="icon-label">Wallet History</span>
+                </div>
+            </button>
+            <button class="action-btn" title="Edit Profile">
+                <div class="icon-container">
+                    <img src="https://img.icons8.com/ios-filled/50/000000/user.png" alt="Wallet">
+                    <span class="icon-label">Edit Profile</span>
+                </div>
+            </button>
+        </div>
+
+    <script>
+        let startX = 0;
+        let endX = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let currentSlideIndex = 0; // To keep track of the current slide
+
+        // Function to show the next slide
+        function moveToNextSlide() {
+            const currentSlide = slides[currentSlideIndex];
+            currentSlide.classList.remove('active');
+            currentSlideIndex = (currentSlideIndex + 1) % totalSlides; // Loop back to the first slide
+            slides[currentSlideIndex].classList.add('active');
+        }
+
+        // Function to show the previous slide
+        function moveToPrevSlide() {
+            const currentSlide = slides[currentSlideIndex];
+            currentSlide.classList.remove('active');
+            currentSlideIndex = (currentSlideIndex - 1 + totalSlides) % totalSlides; // Loop back to the last slide
+            slides[currentSlideIndex].classList.add('active');
+        }
+
+        // Add touch events for swipe functionality
+        document.querySelector('.banner-section').addEventListener('touchstart', function(event) {
+            startX = event.touches[0].clientX;
+        });
+
+        document.querySelector('.banner-section').addEventListener('touchend', function(event) {
+            endX = event.changedTouches[0].clientX;
+            if (startX > endX) {
+                moveToNextSlide();
+            } else if (startX < endX) {
+                moveToPrevSlide();
+            }
+        });
+
+        // Add mouse drag functionality for swipe
+        let isDragging = false;
+        document.querySelector('.banner-section').addEventListener('mousedown', function(event) {
+            startX = event.clientX;
+            isDragging = true;
+        });
+
+        document.querySelector('.banner-section').addEventListener('mousemove', function(event) {
+            if (isDragging) {
+                endX = event.clientX;
+            }
+        });
+
+        document.querySelector('.banner-section').addEventListener('mouseup', function() {
+            if (isDragging) {
+                if (startX > endX) {
+                    moveToNextSlide();
+                } else if (startX < endX) {
+                    moveToPrevSlide();
+                }
+                isDragging = false;
+            }
+        });
+
+        // Automatic slide change every 20 seconds
+        setInterval(moveToNextSlide, 20000); // Change slide every 20 seconds
+    </script>
+</body>
+</html>

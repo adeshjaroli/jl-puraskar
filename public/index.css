@@ -1,0 +1,163 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body and basic structure */
+body {
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background: linear-gradient(to bottom, #ffffff, #7bb4ff); /* Light to dark blue gradient */
+}
+
+/* Main Page Section */
+.login-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* Logo Section */
+.logo-container {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+.logo {
+    width: 200px;
+    height: auto;
+}
+
+/* Form Section (White box) */
+.form-container {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+.form-box {
+    background-color: white;
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    text-align: center;
+}
+
+.welcome-heading {
+    font-size: 28px;
+    color: #004aad;
+    margin-bottom: 10px;
+}
+
+.login-heading {
+    font-size: 24px;
+    color: #004aad;
+    margin-bottom: 20px;
+}
+
+/* Mobile Number Input Field */
+.input-field {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    border: 2px solid #004aad;
+    font-size: 16px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    outline: none;
+}
+
+.input-field:focus {
+    border-color: #003366;
+}
+
+/* Send OTP Button */
+.send-otp-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #004aad, #003366);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease-in-out;
+}
+
+.send-otp-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Help Section */
+.help-section {
+    margin-top: 20px;
+}
+
+.help-section p {
+    font-size: 14px;
+    color: #004aad;
+}
+
+.whatsapp-link {
+    text-decoration: none;
+}
+
+.whatsapp-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #25d366;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease-in-out;
+    margin-top: 10px;
+}
+
+.whatsapp-btn:hover {
+    transform: scale(1.05);
+}
+
+.whatsapp-logo {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .logo {
+        width: 120px;
+    }
+
+    .form-box {
+        width: 90%;
+    }
+
+    .input-field {
+        padding: 12px;
+    }
+
+    .send-otp-btn, .whatsapp-btn {
+        font-size: 16px;
+    }
+}

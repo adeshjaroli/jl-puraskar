@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="/admin/index.css">
+</head>
+<body>
+    <div class="login-page">
+        <!-- Logo Section -->
+        <div class="logo-container">
+            <img src="/admin/images/jlpuraskar.png" alt="Logo" class="logo"> <!-- Linked logo from root directory -->
+        </div>
+
+        <!-- Form Section -->
+        <div class="form-container">
+            <div class="form-box">
+               
+                
+                <!-- Login Heading -->
+                <h1 class="login-heading">Login to your account</h1>
+                <form action="/user/submit-mobile" method="POST">
+                <!-- Mobile Number Input -->
+                <input type="number" id="mobileNumber" name="mobileNumber" class="input-field" placeholder="Enter your mobile number" required />
+
+                <!-- Send OTP Button -->
+                <button class="send-otp-btn">Send OTP</button>
+                </form>
+                <!-- Spacer and Help Section -->
+                <div class="help-section">
+                    <p>Need help?</p>
+                    <a href="https://wa.me/9691218959" target="_blank" class="whatsapp-link">
+                        <button class="whatsapp-btn">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" class="whatsapp-logo">
+                            Chat with us on WhatsApp
+                        </button>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

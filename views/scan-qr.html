@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan QR</title>
+    <link rel="stylesheet" href="/admin/scanqr.css">
+</head>
+<body class="scan-qr-body">
+    <div class="dashboard-container">
+        <div class="content-area">
+            <!-- Camera Scan Area (for future use) -->
+            <div class="camera-area">
+                <video id="camera-stream" autoplay playsinline></video>
+            </div>
+
+            <!-- Manual Entry Section -->
+            <div class="manual-entry">
+                <h2>Enter Code Manually</h2>
+                <input type="text" id="manual-code" placeholder="Enter QR Code" />
+                <button class="qr-button" id="enter-code-btn">Submit Code</button>
+                <p id="status-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin/scanqr.js"></script> <!-- Ensure this path is correct -->
+</body>
+</html>

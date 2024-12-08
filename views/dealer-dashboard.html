@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JL Puraskar Dealer Portal</title>
+    <link rel="stylesheet" href="/admin/dealer-dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <p>Enter your 9-digit QR code to get details about the scan.</p>
+        
+        <div class="form-group">
+            <label for="qrCodeInput">9-Digit QR Code:</label>
+            <input type="text" id="qrCodeInput" placeholder="Enter QR Code" maxlength="9" required>
+        </div>
+        
+        <button onclick="getQRCodeDetails()">Get QR Code Details</button>
+
+        <div id="loading" style="display:none;">Loading...</div> <!-- Loading state -->
+        <div id="qrDetails" class="details">
+            <!-- QR Code details will be shown here -->
+        </div>
+    </div>
+
+    <script>
+        // Function to fetch QR code details
+        async function getQRCodeDetails() {
+            const qrCode = document.getElementById('qrCodeInput').value.trim();
+
+            if (qrCode.length === 9) {
+                // Show loading message
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('qrDetails').innerHTML = ''; // Clear previous results
+                
+                try {
+                    const response = await fetch(`/dealer/get-qr-details/${qrCode}`);
+                    const data = await response.json();
+
+                    // Hide loading message
+                    document.getElementById('loading').style.display = 'none';
+
+                    if (data.success) {
+                        document.getElementById('qrDetails').innerHTML = `
+                            <h2>QR Code Details</h2>
+                            <p><strong>QR Code:</strong> ${data.qrCode}</p>
+                            <p><strong>QR Batch:</strong> ${data.Qrbatch}</p>
+                                                        <p><strong>Scanned by:</strong> ${data.scannedBy}</p>
+                            <p><strong>Mobile Number:</strong> ${data.mobileNumber}</p>
+                            <p><strong>Scan Date:</strong> ${data.scanDate}</p>
+                            <p><strong>Transaction Amount:</strong> ₹${data.transactionAmount}</p>
+                        `;
+                    } else {
+                        document.getElementById('qrDetails').innerHTML = `<p>No data found for this QR Code.</p>`;
+                    }
+                } catch (error) {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('qrDetails').innerHTML = `<p>There was an error fetching the details. Please try again.</p>`;
+                }
+            } else {
+                alert("Please enter a valid 9-digit QR code.");
+            }
+        }
+    </script>
+</body>
+</html>
