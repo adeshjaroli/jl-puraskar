@@ -119,12 +119,6 @@ body {
     justify-content: center;
     transition: transform 0.3s, box-shadow 0.3s;
     margin-top: 10px;
-    text-decoration: none;
-}
-
-.whatsapp-btn a {
-    text-decoration: none; /* Ensure hyperlink text inside the button has no underline */
-    color: inherit; /* Ensure the color of the text matches the button */
 }
 
 .whatsapp-btn:hover {
@@ -186,4 +180,8 @@ body {
     .login-heading {
         font-size: 16px;
     }
+}
+
+.whatsapp-link {
+    text-decoration: none;
 }

@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan QR</title>
     <link rel="stylesheet" href="/admin/scanqr.css">
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script> <!-- Include library -->
 </head>
 <body class="scan-qr-body">
     <div class="dashboard-container">
         <div class="content-area">
-            <!-- Camera Scan Area (for future use) -->
+            <!-- Camera Scan Area -->
             <div class="camera-area">
-                <video id="camera-stream" autoplay playsinline></video>
+                <h2>Scan QR Code</h2>
+                <div id="qr-reader" style="width: 100%;"></div>
+                <p id="camera-status"></p>
             </div>
 
             <!-- Manual Entry Section -->
@@ -24,6 +27,6 @@
         </div>
     </div>
 
-    <script src="/admin/scanqr.js"></script> <!-- Ensure this path is correct -->
+    <script src="/admin/scanqr.js"></script>
 </body>
 </html>
