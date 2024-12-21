@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan QR</title>
     <link rel="stylesheet" href="/admin/scanqr.css">
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script> <!-- Include library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> <!-- Include library -->
 </head>
 <body class="scan-qr-body">
     <div class="dashboard-container">
@@ -14,7 +14,7 @@
             <div class="camera-area">
                 <h2>Scan QR Code</h2>
                 <div id="qr-reader" style="width: 100%; height: 400px;"></div> <!-- Set fixed height for the camera area -->
-                <p id="camera-status"></p>
+                <p id="camera-status" style="color: red;"></p>
             </div>
 
             <!-- Manual Entry Section -->
@@ -33,7 +33,7 @@
             // Display the decoded text (QR code data)
             document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
 
-            // Optionally, send the QR code data to the backend for further processing
+            // Send the QR code data to the backend for processing
             fetch('/user/scan-qr', {
                 method: 'POST',
                 headers: {
@@ -58,24 +58,35 @@
         }
 
         function onScanError(errorMessage) {
-            // Handle errors here (optional)
+            // Log scan errors for debugging
             console.log(errorMessage);
+            document.getElementById("camera-status").innerText = "Error: " + errorMessage;
         }
 
-        // Initialize the QR scanner when the page is loaded
+        // Start the QR scanner when the page loads
         function startScanner() {
-            // Check if the Html5QrcodeScanner object exists
-            if (typeof Html5QrcodeScanner !== "undefined") {
-                const html5QrcodeScanner = new Html5QrcodeScanner(
-                    "qr-reader", {
-                        fps: 10,   // Frames per second
-                        qrbox: 250 // The size of the scanning box (for QR code detection)
-                    }
-                );
-                html5QrcodeScanner.render(onScanSuccess, onScanError); // Start the scanner
-            } else {
-                document.getElementById("camera-status").innerText = "QR Scanner is not supported on this device.";
+            const cameraStatus = document.getElementById("camera-status");
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                cameraStatus.innerText = "Camera access is not supported on this device.";
+                return;
             }
+
+            // Request camera permission and start scanner
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(() => {
+                    const html5QrcodeScanner = new Html5QrcodeScanner(
+                        "qr-reader", {
+                            fps: 10,   // Frames per second
+                            qrbox: 250 // The size of the scanning box (for QR code detection)
+                        }
+                    );
+                    html5QrcodeScanner.render(onScanSuccess, onScanError);
+                })
+                .catch(err => {
+                    cameraStatus.innerText = "Camera access denied or unavailable.";
+                    console.error("Camera permission error:", err);
+                });
         }
 
         // Start the camera scan when the page loads
