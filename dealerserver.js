@@ -2,8 +2,8 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const expressSession = require("express-session");
-const { initializeApp } = require("firebase/app");  // Import Firebase initialization
-const { getDatabase, ref, get } = require("firebase/database");  // Import required Firebase functions
+const { initializeApp } = require("firebase/app");
+const { getDatabase, ref, get } = require("firebase/database");
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -16,7 +16,6 @@ const firebaseConfig = {
     appId: "1:679141882235:web:72772e91bc2f740e2025de",
     measurementId: "G-5MP3HNH690"
 };
-
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -42,20 +41,35 @@ dealerRouter.get("/login", (req, res) => {
 });
 
 // Handle login form submission
-dealerRouter.post("/login", (req, res) => {
-  const { email, password } = req.body;
+dealerRouter.post("/login", async (req, res) => {
+  const { userId, password } = req.body;
 
-  // Example authentication logic
-  if (email === "dealer@example.com" && password === "password123") {
-    // Save the session to keep the user logged in
-    req.session.isLoggedIn = true;
-    req.session.email = email;
+  try {
+    // Reference to the 'dealers' node in Firebase with userId
+    const dealerRef = ref(db, "dealers/" + userId);
+    const snapshot = await get(dealerRef);
 
-    // Redirect to the dealer dashboard
-    res.redirect("/dealer/dealer-dashboard");
-  } else {
-    // Send an error message if login fails
-    res.status(401).send("Invalid email or password.");
+    if (snapshot.exists()) {
+      const dealerData = snapshot.val();
+      
+      if (dealerData.password === password) {
+        // Save the session to keep the user logged in
+        req.session.isLoggedIn = true;
+        req.session.userId = userId;
+
+        // Redirect to the dealer dashboard
+        return res.redirect("/dealer/dealer-dashboard");
+      } else {
+        // Incorrect password
+        return res.status(401).send("Invalid User ID or password.");
+      }
+    } else {
+      // Dealer not found
+      return res.status(401).send("Invalid User ID or password.");
+    }
+  } catch (error) {
+    console.error("Error during login:", error);
+    return res.status(500).send("Internal server error.");
   }
 });
 

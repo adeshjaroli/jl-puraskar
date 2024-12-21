@@ -23,6 +23,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+
 // Initialize Firebase Realtime Database
 const db = getDatabase(app);
 
@@ -649,6 +650,71 @@ adminRouter.post('/backup', (req, res) => {
     
     // Trigger backup logic here based on your database structure
     res.status(200).send('Backup process not implemented');
+});
+
+
+// Serve the create dealer page
+adminRouter.get("/create-dealer", (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "create-dealer.html"));
+});
+
+// Get the list of all dealers
+adminRouter.get('/dealers', async (req, res) => {
+    try {
+        const dealerRef = ref(db, 'dealers');
+        const snapshot = await get(dealerRef);
+        if (!snapshot.exists()) {
+            return res.json({ dealers: [] });
+        }
+
+        const dealers = Object.keys(snapshot.val()).map(id => ({
+            id,
+            userId: snapshot.val()[id].userId,
+            password: snapshot.val()[id].password,
+        }));
+
+        res.json({ dealers });
+    } catch (error) {
+        console.error("Error fetching dealers:", error);
+        res.status(500).send("Failed to load dealers.");
+    }
+});
+
+// Create a new dealer
+adminRouter.post('/create-dealer', async (req, res) => {
+    const { userId, password } = req.body;
+
+    try {
+        const dealerRef = ref(db, `dealers/${userId}`);
+        
+        // Check if the dealer already exists
+        const snapshot = await get(dealerRef);
+        if (snapshot.exists()) {
+            return res.status(400).send("Dealer already exists.");
+        }
+
+        // Create the new dealer in Firebase
+        await set(dealerRef, { userId, password });
+
+        res.redirect('/admin/create-dealer');  // Redirect to the same page after creation
+    } catch (error) {
+        console.error("Error creating dealer:", error);
+        res.status(500).send("Failed to create new dealer.");
+    }
+});
+
+// Delete a dealer
+adminRouter.delete('/delete-dealer/:dealerId', async (req, res) => {
+    const { dealerId } = req.params;
+
+    try {
+        const dealerRef = ref(db, `dealers/${dealerId}`);
+        await remove(dealerRef);
+        res.status(200).send('Dealer deleted successfully');
+    } catch (error) {
+        console.error("Error deleting dealer:", error);
+        res.status(500).send("Failed to delete dealer.");
+    }
 });
 
 module.exports = adminRouter;
