@@ -210,7 +210,7 @@ userRouter.get('/scan-qr', isAuthenticated, async (req, res) => {
 
 // QR Code scanning logic (POST request)
 userRouter.post('/scan-qr', isAuthenticated, async (req, res) => {
-    const qrCode = req.body.qrCode.trim();
+    const qrCode = req.body.qrCode.trim(); // QR code from manual or camera scan
     const mobileNumber = req.session.mobileNumber;
 
     try {
@@ -231,8 +231,8 @@ userRouter.post('/scan-qr', isAuthenticated, async (req, res) => {
             const batch = batches[batchId];
 
             // Convert qrCodes to an array if it's an object
-            const qrCodesArray = Array.isArray(batch.qrCodes) 
-                ? batch.qrCodes 
+            const qrCodesArray = Array.isArray(batch.qrCodes)
+                ? batch.qrCodes
                 : Object.values(batch.qrCodes || {});
 
             const qr = qrCodesArray.find(qr => qr.code === qrCode);
@@ -252,22 +252,22 @@ userRouter.post('/scan-qr', isAuthenticated, async (req, res) => {
         }
 
         // Update the QR code status to 'Scanned'
-const qrCodesRef = ref(db, `batches/${qrBatch}/qrCodes`);
-const qrCodesSnapshot = await get(qrCodesRef);
+        const qrCodesRef = ref(db, `batches/${qrBatch}/qrCodes`);
+        const qrCodesSnapshot = await get(qrCodesRef);
 
-// Retrieve the unique key of the QR code
-if (qrCodesSnapshot.exists()) {
-    const qrCodes = qrCodesSnapshot.val();
-    const qrCodeKey = Object.keys(qrCodes).find(key => qrCodes[key].code === qrCode);
+        // Retrieve the unique key of the QR code
+        if (qrCodesSnapshot.exists()) {
+            const qrCodes = qrCodesSnapshot.val();
+            const qrCodeKey = Object.keys(qrCodes).find(key => qrCodes[key].code === qrCode);
 
-    if (qrCodeKey) {
-        const qrCodeRef = ref(db, `batches/${qrBatch}/qrCodes/${qrCodeKey}`);
-        await update(qrCodeRef, { status: 'Scanned' });
-    } else {
-        console.error('QR Code key not found.');
-    }
-};     
-         
+            if (qrCodeKey) {
+                const qrCodeRef = ref(db, `batches/${qrBatch}/qrCodes/${qrCodeKey}`);
+                await update(qrCodeRef, { status: 'Scanned' });
+            } else {
+                console.error('QR Code key not found.');
+            }
+        }
+
         // Get the user's current data
         const userRef = ref(db, `users/${mobileNumber}`);
         const userSnapshot = await get(userRef);
@@ -295,17 +295,17 @@ if (qrCodesSnapshot.exists()) {
         await update(userRef, { walletBalance: updatedBalance });
 
         // Save coupon data with serialNumber
-const couponId = `${mobileNumber}_${qrCode}_${Date.now()}`;  // Use timestamp to generate a unique coupon ID
-const couponRef = ref(db, `coupons/${couponId}`);
-const couponData = {
-    mobileNumber,
-    fullName: user.fullName,
-    qrCode,
-    points,
-    dateScanned: new Date().toISOString().split('T')[0],  // Date format: YYYY-MM-DD
-    qrBatch,
-    serialNumber: Date.now()  // Assign serialNumber as the current timestamp
-};
+        const couponId = `${mobileNumber}_${qrCode}_${Date.now()}`;  // Use timestamp to generate a unique coupon ID
+        const couponRef = ref(db, `coupons/${couponId}`);
+        const couponData = {
+            mobileNumber,
+            fullName: user.fullName,
+            qrCode,
+            points,
+            dateScanned: new Date().toISOString().split('T')[0],  // Date format: YYYY-MM-DD
+            qrBatch,
+            serialNumber: Date.now()  // Assign serialNumber as the current timestamp
+        };
         await set(couponRef, couponData);
 
         res.json({
@@ -318,6 +318,7 @@ const couponData = {
         res.json({ success: false, message: 'Failed to scan QR code' });
     }
 });
+
 
 // Sample route for handling logout
 userRouter.post('/logout', (req, res) => {

@@ -13,7 +13,7 @@
             <!-- Camera Scan Area -->
             <div class="camera-area">
                 <h2>Scan QR Code</h2>
-                <div id="qr-reader" style="width: 100%;"></div>
+                <div id="qr-reader" style="width: 100%; height: 400px;"></div> <!-- Set fixed height for the camera area -->
                 <p id="camera-status"></p>
             </div>
 
@@ -26,6 +26,63 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Initialize the QR Code scanner using html5-qrcode
+        function onScanSuccess(decodedText, decodedResult) {
+            // Display the decoded text (QR code data)
+            document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
+
+            // Optionally, send the QR code data to the backend for further processing
+            fetch('/user/scan-qr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    qrCode: decodedText
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("status-message").innerHTML = `QR Code Scanned Successfully! Points: ${data.points}`;
+                } else {
+                    document.getElementById("status-message").innerHTML = data.message || 'Error processing QR Code';
+                }
+            })
+            .catch(error => {
+                document.getElementById("status-message").innerHTML = 'Error sending QR Code to server.';
+                console.error('Error:', error);
+            });
+        }
+
+        function onScanError(errorMessage) {
+            // Handle errors here (optional)
+            console.log(errorMessage);
+        }
+
+        // Initialize the QR scanner when the page is loaded
+        function startScanner() {
+            // Check if the Html5QrcodeScanner object exists
+            if (typeof Html5QrcodeScanner !== "undefined") {
+                const html5QrcodeScanner = new Html5QrcodeScanner(
+                    "qr-reader", {
+                        fps: 10,   // Frames per second
+                        qrbox: 250 // The size of the scanning box (for QR code detection)
+                    }
+                );
+                html5QrcodeScanner.render(onScanSuccess, onScanError); // Start the scanner
+            } else {
+                document.getElementById("camera-status").innerText = "QR Scanner is not supported on this device.";
+            }
+        }
+
+        // Start the camera scan when the page loads
+        window.onload = function() {
+            startScanner();
+        };
+    </script>
 
     <script src="/admin/scanqr.js"></script>
 </body>
