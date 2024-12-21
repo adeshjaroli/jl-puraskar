@@ -8,12 +8,19 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> <!-- Include library -->
     <style>
         #qr-reader {
-            width: 100%;
-            height: 400px;
+            width: 100%; /* Make the QR reader fill the entire container width */
+            height: 400px; /* Fixed height for the QR reader container */
+            position: relative; /* Ensure video fits inside the container */
+            overflow: hidden; /* Hide anything outside the bounds of the container */
         }
-        /* Make sure the camera feed fits within the container */
+
         video {
-            object-fit: cover; /* Ensures video fills the container without distorting */
+            width: 100%; /* Make the video fill the width of the container */
+            height: 100%; /* Make the video fill the height of the container */
+            object-fit: cover; /* Ensure the video fills the container without distorting, cropping if necessary */
+            position: absolute; /* Position the video absolutely inside the container */
+            top: 0; /* Align the video to the top */
+            left: 0; /* Align the video to the left */
         }
     </style>
 </head>
@@ -43,31 +50,11 @@
             // Display the decoded text (QR code data)
             document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
 
-            // Send the QR code data to the backend for processing
-            fetch('/user/scan-qr', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    qrCode: decodedText
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Notify user that points have been added
-                    document.getElementById("status-message").innerHTML = `QR Code Scanned Successfully! Points: ${data.points}`;
-                    alert("Points have been added to your wallet!");
-                    // Optionally, trigger a server-side action to mark the coupon as scanned
-                } else {
-                    document.getElementById("status-message").innerHTML = data.message || 'Error processing QR Code';
-                }
-            })
-            .catch(error => {
-                document.getElementById("status-message").innerHTML = 'Error sending QR Code to server.';
-                console.error('Error:', error);
-            });
+            // Automatically fill the input field with the scanned code
+            document.getElementById("manual-code").value = decodedText;
+
+            // Optional: Clear previous messages or handle scanning state
+            document.getElementById("camera-status").innerText = 'QR Code scanned, please click submit.';
         }
 
         function onScanError(errorMessage) {
@@ -102,6 +89,42 @@
                     console.error("Camera permission error:", err);
                 });
         }
+
+        // Handle the manual submission of QR code
+        document.getElementById("enter-code-btn").addEventListener("click", function() {
+            const qrCode = document.getElementById("manual-code").value.trim();
+
+            if (!qrCode || qrCode.length !== 9) {
+                alert("Please enter a valid 9-digit QR code.");
+                return;
+            }
+
+            // Send the QR code data to the backend for processing
+            fetch('/user/scan-qr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    qrCode: qrCode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Notify user that points have been added
+                    document.getElementById("status-message").innerHTML = `QR Code Scanned Successfully! Points: ${data.points}`;
+                    alert("Points have been added to your wallet!");
+                    // Optionally, trigger a server-side action to mark the coupon as scanned
+                } else {
+                    document.getElementById("status-message").innerHTML = data.message || 'Error processing QR Code';
+                }
+            })
+            .catch(error => {
+                document.getElementById("status-message").innerHTML = 'Error sending QR Code to server.';
+                console.error('Error:', error);
+            });
+        });
 
         // Start the camera scan when the page loads
         window.onload = function() {
