@@ -17,7 +17,7 @@
         video {
             width: 100%; /* Make the video fill the width of the container */
             height: 100%; /* Make the video fill the height of the container */
-            object-fit: cover; /* Ensure the video fills the container without distorting, cropping if necessary */
+            object-fit: contain; /* Ensure the video fits within the container without stretching or cropping */
             position: absolute; /* Position the video absolutely inside the container */
             top: 0; /* Align the video to the top */
             left: 0; /* Align the video to the left */
@@ -30,7 +30,7 @@
             <!-- Camera Scan Area -->
             <div class="camera-area">
                 <h2>Scan QR Code</h2>
-                <div id="qr-reader" style="width: 100%; height: 400px;"></div> <!-- Set fixed height for the camera area -->
+                <div id="qr-reader"></div> <!-- Set fixed height for the camera area -->
                 <p id="camera-status" style="color: red;"></p>
             </div>
 
@@ -48,12 +48,13 @@
         // Initialize the QR Code scanner using html5-qrcode
         function onScanSuccess(decodedText, decodedResult) {
             // Display the decoded text (QR code data)
-            document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
+            console.log("Scanned QR Code: " + decodedText);
 
             // Automatically fill the input field with the scanned code
             document.getElementById("manual-code").value = decodedText;
 
-            // Optional: Clear previous messages or handle scanning state
+            // Display status message
+            document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
             document.getElementById("camera-status").innerText = 'QR Code scanned, please click submit.';
         }
 
