@@ -6,6 +6,16 @@
     <title>Scan QR</title>
     <link rel="stylesheet" href="/admin/scanqr.css">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> <!-- Include library -->
+    <style>
+        #qr-reader {
+            width: 100%;
+            height: 400px;
+        }
+        /* Make sure the camera feed fits within the container */
+        video {
+            object-fit: cover; /* Ensures video fills the container without distorting */
+        }
+    </style>
 </head>
 <body class="scan-qr-body">
     <div class="dashboard-container">
@@ -46,7 +56,10 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Notify user that points have been added
                     document.getElementById("status-message").innerHTML = `QR Code Scanned Successfully! Points: ${data.points}`;
+                    alert("Points have been added to your wallet!");
+                    // Optionally, trigger a server-side action to mark the coupon as scanned
                 } else {
                     document.getElementById("status-message").innerHTML = data.message || 'Error processing QR Code';
                 }
@@ -78,7 +91,8 @@
                     const html5QrcodeScanner = new Html5QrcodeScanner(
                         "qr-reader", {
                             fps: 10,   // Frames per second
-                            qrbox: 250 // The size of the scanning box (for QR code detection)
+                            qrbox: 250, // The size of the scanning box (for QR code detection)
+                            aspectRatio: 1, // Maintain aspect ratio for the scanner box
                         }
                     );
                     html5QrcodeScanner.render(onScanSuccess, onScanError);
