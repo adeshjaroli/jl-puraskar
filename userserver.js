@@ -2,15 +2,25 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const fs = require('fs');
+const { initializeApp } = require('firebase/app');
+const { getDatabase, ref, set, get, update } = require('firebase/database');
 
+// Initialize Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyD21Si1wvV6eje9XrwkkFDcos1_HgSo0pY",
+    authDomain: "qrdatabaseapp-f3836.firebaseapp.com",
+    databaseURL: "https://qrdatabaseapp-f3836-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "qrdatabaseapp-f3836",
+    storageBucket: "qrdatabaseapp-f3836.firebasestorage.app",
+    messagingSenderId: "679141882235",
+    appId: "1:679141882235:web:72772e91bc2f740e2025de",
+    measurementId: "G-5MP3HNH690"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app); // Get reference to the Firebase Realtime Database
 
 const userRouter = express.Router();
-const usersFile = path.join(__dirname, 'data', 'users.json');
-const qrBatchesDir = path.join(__dirname, 'qr_batches');
-const couponDataFile = path.join(__dirname, 'data', 'couponData.json');
-
-
 
 // Initialize session middleware
 userRouter.use(
@@ -31,7 +41,6 @@ userRouter.use(bodyParser.urlencoded({ extended: true }));
 userRouter.use(bodyParser.json());
 userRouter.use(express.urlencoded({ extended: true }));
 
-
 // Middleware to check if the user is logged in
 function isAuthenticated(req, res, next) {
     if (req.session && req.session.mobileNumber) {
@@ -46,40 +55,42 @@ userRouter.get('/', (req, res) => {
 });
 
 // Registration page: Only accessible after login
-userRouter.get('/register', isAuthenticated, (req, res) => {
+userRouter.get('/register', isAuthenticated, async (req, res) => {
     const mobileNumber = req.session.mobileNumber;
 
-    fs.readFile(usersFile, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading users file');
+    try {
+        const userRef = ref(db, `users/${mobileNumber}`);
+        const snapshot = await get(userRef);
 
-        let users = JSON.parse(data);
-        const user = users.find(u => u.mobileNumber === mobileNumber);
-
-        if (!user) {
+        if (!snapshot.exists()) {
             return res.status(404).send('User not found');
         }
+
+        const user = snapshot.val();
 
         if (user.isRegistered) {
             return res.redirect('/user/dashboard'); // Redirect if already registered
         }
 
         res.render('register', { mobileNumber });
-    });
+    } catch (err) {
+        return res.status(500).send('Error reading user data');
+    }
 });
 
 // Dashboard: Protected route
-userRouter.get('/dashboard', isAuthenticated, (req, res) => {
+userRouter.get('/dashboard', isAuthenticated, async (req, res) => {
     const mobileNumber = req.session.mobileNumber;
 
-    fs.readFile(usersFile, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading users file');
+    try {
+        const userRef = ref(db, `users/${mobileNumber}`);
+        const snapshot = await get(userRef);
 
-        let users = JSON.parse(data);
-        const user = users.find(u => u.mobileNumber === mobileNumber);
-
-        if (!user) {
+        if (!snapshot.exists()) {
             return res.status(404).send('User not found');
         }
+
+        const user = snapshot.val();
 
         if (!user.isRegistered) {
             return res.redirect('/user/register');
@@ -89,11 +100,13 @@ userRouter.get('/dashboard', isAuthenticated, (req, res) => {
             userName: user.fullName,
             walletBalance: user.walletBalance
         });
-    });
+    } catch (err) {
+        return res.status(500).send('Error reading user data');
+    }
 });
 
 // Mobile number submission route
-userRouter.post('/submit-mobile', (req, res) => {
+userRouter.post('/submit-mobile', async (req, res) => {
     const { mobileNumber } = req.body;
 
     if (!mobileNumber) {
@@ -102,54 +115,53 @@ userRouter.post('/submit-mobile', (req, res) => {
 
     req.session.mobileNumber = mobileNumber;
 
-    let users = [];
-    if (fs.existsSync(usersFile)) {
-        users = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
+    try {
+        const userRef = ref(db, `users/${mobileNumber}`);
+        const snapshot = await get(userRef);
+
+        if (snapshot.exists()) {
+            const user = snapshot.val();
+            return res.redirect(user.isRegistered ? '/user/dashboard' : '/user/register');
+        }
+
+        // Create new user
+        const newUser = {
+            mobileNumber,
+            fullName: '',
+            dob: '',
+            userType: '',
+            address: '',
+            pinCode: '',
+            state: '',
+            city: '',
+            walletBalance: 0.0,
+            serialNumber: Date.now(),
+            status: 'active',
+            isRegistered: false,
+            isActive: true // Added isActive flag
+        };
+
+        await set(userRef, newUser);
+        res.redirect('/user/register');
+    } catch (err) {
+        res.status(500).send('Error creating user');
     }
-
-    const existingUser = users.find(user => user.mobileNumber === mobileNumber);
-    if (existingUser) {
-        return res.redirect(
-            existingUser.isRegistered ? '/user/dashboard' : '/user/register'
-        );
-    }
-
-    const newUser = {
-        mobileNumber,
-        fullName: '',
-        dob: '',
-        userType: '',
-        address: '',
-        pinCode: '',
-        state: '',
-        city: '',
-        walletBalance: 0.0,
-        status: 'active',
-        isRegistered: false
-    };
-
-    users.push(newUser);
-    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), 'utf8');
-
-    res.redirect('/user/register');
 });
 
 // Registration form submission
-userRouter.post('/register', (req, res) => {
+userRouter.post('/register', async (req, res) => {
     const { mobileNumber, fullName, dob, userType, address, pinCode, state, city } = req.body;
 
-    fs.readFile(usersFile, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading users file');
+    try {
+        const userRef = ref(db, `users/${mobileNumber}`);
+        const snapshot = await get(userRef);
 
-        let users = data ? JSON.parse(data) : [];
-        const userIndex = users.findIndex(user => user.mobileNumber === mobileNumber);
-
-        if (userIndex === -1) {
+        if (!snapshot.exists()) {
             return res.status(404).send('User not found');
         }
 
-        users[userIndex] = {
-            ...users[userIndex],
+        const user = snapshot.val();
+        await update(userRef, {
             fullName,
             dob,
             userType,
@@ -157,149 +169,154 @@ userRouter.post('/register', (req, res) => {
             pinCode,
             state,
             city,
-            walletBalance: users[userIndex].walletBalance || 0,
-            isRegistered: true
-        };
-
-        fs.writeFile(usersFile, JSON.stringify(users, null, 2), err => {
-            if (err) {
-                return res.status(500).send('Error saving user data');
-            }
-            res.redirect('/user/dashboard');
+            walletBalance: user.walletBalance || 0,
+            isRegistered: true,
+            isActive: true // Added isActive flag
         });
-    });
+
+        res.redirect('/user/dashboard');
+    } catch (err) {
+        return res.status(500).send('Error saving user data');
+    }
 });
 
+// QR Code scanning logic
 // QR Code scanning page: Protected route
-userRouter.get('/scan-qr', isAuthenticated, (req, res) => {
+userRouter.get('/scan-qr', isAuthenticated, async (req, res) => {
     const mobileNumber = req.session.mobileNumber;
 
-    fs.readFile(usersFile, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading users file');
+    try {
+        // Fetch user data from Firebase
+        const userRef = ref(db, `users/${mobileNumber}`);
+        const userSnapshot = await get(userRef);
 
-        let users = JSON.parse(data);
-        const user = users.find(u => u.mobileNumber === mobileNumber);
+        if (!userSnapshot.exists()) {
+            return res.status(404).send('User not found');
+        }
 
-        if (!user || !user.isRegistered) {
+        const user = userSnapshot.val();
+
+        if (!user.isRegistered) {
             return res.status(403).send('You need to be registered to access this page.');
         }
 
+        // Render the scan QR page if everything is fine
         res.sendFile(path.join(__dirname, 'views', 'scan-qr.html'));
-    });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).send('Error checking user registration.');
+    }
 });
 
-
-// QR Code scanning logic
-userRouter.post('/scan-qr', isAuthenticated, (req, res) => {
+// QR Code scanning logic (POST request)
+userRouter.post('/scan-qr', isAuthenticated, async (req, res) => {
     const qrCode = req.body.qrCode.trim();
     const mobileNumber = req.session.mobileNumber;
-    let qrData = null;
-    let filePath = '';
-    let qrBatch = '';
-    let userName = '';
 
-    // Search for the QR code in batch directories and text files
-    const batchDirs = fs.readdirSync(qrBatchesDir);
-    for (let batchDir of batchDirs) {
-        const batchFilePath = path.join(qrBatchesDir, batchDir, `${batchDir}_batch.txt`);
-        if (fs.existsSync(batchFilePath)) {
-            const batchData = fs.readFileSync(batchFilePath, 'utf8');
-            const qrCodeMatch = batchData.match(new RegExp(`QR Code:\\s*${qrCode}\\s*([\\s\\S]*?)Status:\\s*(Not Scanned|Scanned)`, 'i'));
-            
-            if (qrCodeMatch) {
-                qrData = qrCodeMatch[0];
-                filePath = batchFilePath;
-                qrBatch = batchDir;  // Capture the batch name
+    try {
+        // Fetch all batches from the database
+        const batchRef = ref(db, 'batches');
+        const snapshot = await get(batchRef);
+
+        if (!snapshot.exists()) {
+            return res.json({ success: false, message: 'No batches found.' });
+        }
+
+        const batches = snapshot.val();
+        let qrData = null;
+        let qrBatch = '';
+
+        // Iterate through each batch to find the QR code
+        for (const batchId in batches) {
+            const batch = batches[batchId];
+
+            // Convert qrCodes to an array if it's an object
+            const qrCodesArray = Array.isArray(batch.qrCodes) 
+                ? batch.qrCodes 
+                : Object.values(batch.qrCodes || {});
+
+            const qr = qrCodesArray.find(qr => qr.code === qrCode);
+            if (qr) {
+                qrData = qr;
+                qrBatch = batchId;
                 break;
             }
         }
+
+        if (!qrData) {
+            return res.json({ success: false, message: 'QR Code not found.' });
+        }
+
+        if (qrData.status === 'Scanned') {
+            return res.json({ success: false, message: 'QR Code already scanned.' });
+        }
+
+        // Update the QR code status to 'Scanned'
+const qrCodesRef = ref(db, `batches/${qrBatch}/qrCodes`);
+const qrCodesSnapshot = await get(qrCodesRef);
+
+// Retrieve the unique key of the QR code
+if (qrCodesSnapshot.exists()) {
+    const qrCodes = qrCodesSnapshot.val();
+    const qrCodeKey = Object.keys(qrCodes).find(key => qrCodes[key].code === qrCode);
+
+    if (qrCodeKey) {
+        const qrCodeRef = ref(db, `batches/${qrBatch}/qrCodes/${qrCodeKey}`);
+        await update(qrCodeRef, { status: 'Scanned' });
+    } else {
+        console.error('QR Code key not found.');
     }
+};     
+         
+        // Get the user's current data
+        const userRef = ref(db, `users/${mobileNumber}`);
+        const userSnapshot = await get(userRef);
 
-    if (!qrData) {
-        return res.json({ success: false, message: 'Please enter correct code.' });
-    }
-
-    // Check if the QR code has already been scanned
-    if (qrData.includes('Status: Scanned')) {
-        return res.json({ success: false, message: 'QR Code already scanned.' });
-    }
-
-    // Extract points from QR data
-    const pointsMatch = qrData.match(/Points:\s*(\d+)/);
-    const points = pointsMatch ? parseInt(pointsMatch[1], 10) : 0;
-
-    if (isNaN(points)) {
-        return res.json({ success: false, message: 'Invalid QR Code data.' });
-    }
-
-    // Update the QR code status to 'Scanned'
-    const updatedQRData = qrData.replace('Status: Not Scanned', 'Status: Scanned');
-
-    try {
-        // Replace the old QR code data with the updated one in the text file
-        const updatedBatchData = fs.readFileSync(filePath, 'utf8').replace(qrData, updatedQRData);
-        fs.writeFileSync(filePath, updatedBatchData);
-    } catch (error) {
-        return res.json({ success: false, message: 'Failed to update QR Code status.' });
-    }
-
-    // Read users file and update wallet balance
-    fs.readFile(usersFile, 'utf8', (err, data) => {
-        if (err) return res.json({ success: false, message: 'Failed to update user wallet.' });
-
-        let users = JSON.parse(data);
-        const userIndex = users.findIndex(user => user.mobileNumber === mobileNumber);
-
-        if (userIndex === -1) {
+        if (!userSnapshot.exists()) {
             return res.json({ success: false, message: 'User not found.' });
         }
 
-        // Get user details (name and mobile number)
-        const user = users[userIndex];
-        userName = user.fullName;
+        const user = userSnapshot.val();
+        const points = Number(qrData.points); // Ensure points is treated as a number
 
-        // Add points to the user's wallet balance
-        user.walletBalance += points;
-
-        // Save updated user data (only wallet balance)
-        fs.writeFile(usersFile, JSON.stringify(users, null, 2), writeErr => {
-            if (writeErr) {
-                return res.json({ success: false, message: 'Failed to update user wallet.' });
+        // Convert walletBalance to a number and handle invalid values
+        let currentBalance = 0;
+        if (user.walletBalance !== undefined) {
+            currentBalance = Number(user.walletBalance); // Explicitly convert to a number
+            if (isNaN(currentBalance)) {
+                currentBalance = 0; // Fallback
             }
+        }
 
-            // Save scanned coupon details in coupondata.json
-            const scannedCoupon = {
-                mobileNumber: user.mobileNumber,
-                name: userName,
-                qrBatch,
-                qrCode,
-                dateScanned: new Date().toISOString().split('T')[0],  // Format: YYYY-MM-DD
-                points
-            };
+        // Ensure addition happens as a numerical operation
+        const updatedBalance = currentBalance + points;
 
-            fs.readFile(couponDataFile, 'utf8', (couponErr, couponData) => {
-                if (couponErr) return res.json({ success: false, message: 'Failed to save coupon details.' });
+        // Update walletBalance in Firebase
+        await update(userRef, { walletBalance: updatedBalance });
 
-                let coupons = couponData ? JSON.parse(couponData) : [];
+        // Save coupon data with serialNumber
+const couponId = `${mobileNumber}_${qrCode}_${Date.now()}`;  // Use timestamp to generate a unique coupon ID
+const couponRef = ref(db, `coupons/${couponId}`);
+const couponData = {
+    mobileNumber,
+    fullName: user.fullName,
+    qrCode,
+    points,
+    dateScanned: new Date().toISOString().split('T')[0],  // Date format: YYYY-MM-DD
+    qrBatch,
+    serialNumber: Date.now()  // Assign serialNumber as the current timestamp
+};
+        await set(couponRef, couponData);
 
-                // Add the new coupon details
-                coupons.push(scannedCoupon);
-
-                // Save coupon details
-                fs.writeFile(couponDataFile, JSON.stringify(coupons, null, 2), (writeCouponErr) => {
-                    if (writeCouponErr) {
-                        return res.json({ success: false, message: 'Failed to save coupon details.' });
-                    }
-
-                    res.json({
-                        success: true,
-                        message: 'QR Code scanned successfully!',
-                        points
-                    });
-                });
-            });
+        res.json({
+            success: true,
+            message: 'QR Code scanned successfully!',
+            points
         });
-    });
+    } catch (err) {
+        console.error('Error scanning QR:', err);
+        res.json({ success: false, message: 'Failed to scan QR code' });
+    }
 });
 
 // Sample route for handling logout
@@ -312,40 +329,60 @@ userRouter.post('/logout', (req, res) => {
         res.redirect('/user'); // Redirect to login page after successful logout
     });
 });
+
 // Route for QR Apply History Page
-userRouter.get('/qr-apply-history', isAuthenticated, (req, res) => {
+userRouter.get('/qr-apply-history', isAuthenticated, async (req, res) => {
     const mobileNumber = req.session.mobileNumber;  // Get the logged-in user's mobile number
 
-    // Read the coupon data file to get the history of scanned QR codes
-    fs.readFile(couponDataFile, 'utf8', (err, data) => {
-        if (err) {
-            return res.json({ success: false, message: 'Failed to fetch QR apply history.' });
+    try {
+        // Fetch the user's coupon data from Firebase
+        const couponRef = ref(db, `coupons`);
+        const snapshot = await get(couponRef);
+
+        if (!snapshot.exists()) {
+            return res.json({ success: false, message: 'No coupon history found.' });
         }
 
-        let coupons = JSON.parse(data);
+        const coupons = snapshot.val();
 
         // Filter coupons by the logged-in user's mobile number
-        const userCoupons = coupons.filter(coupon => coupon.mobileNumber === mobileNumber);
+        let userCoupons = Object.values(coupons).filter(coupon => coupon.mobileNumber === mobileNumber);
 
-        // Render the page with the filtered coupon data for the current user
-        res.render('qr-apply-history', { coupons: userCoupons });
-    });
+        // Sort coupons by serialNumber (desc), and then by dateScanned (desc) if serials are the same
+        userCoupons.sort((a, b) => {
+            // Sort by serialNumber first (desc)
+            if (b.serialNumber !== a.serialNumber) {
+                return b.serialNumber - a.serialNumber;
+            }
+            // If serialNumber is the same, sort by dateScanned (desc)
+            const dateA = new Date(a.dateScanned);
+            const dateB = new Date(b.dateScanned);
+            return dateB - dateA;
+        });
+
+        // Calculate total points by summing the points from each coupon
+        const totalPoints = userCoupons.reduce((sum, coupon) => sum + coupon.points, 0);
+
+        // Render the page with the filtered and sorted coupon data, and total points
+        res.render('qr-apply-history', { coupons: userCoupons, totalPoints });
+    } catch (err) {
+        console.error('Error fetching coupon history:', err);
+        res.json({ success: false, message: 'Failed to fetch QR apply history.' });
+    }
 });
 
-// Helper function to write in coupondata file
-function saveScannedCoupon(couponData) {
-    if (!fs.existsSync(couponDataFile)) {
-        fs.writeFileSync(couponDataFile, JSON.stringify([], null, 2));
+// Helper function to save scanned coupon data to Firebase
+async function saveScannedCoupon(couponData) {
+    try {
+        const couponId = `${couponData.mobileNumber}_${couponData.qrCode}_${Date.now()}`;
+        const couponRef = ref(db, `coupons/${couponId}`);
+        
+        // Save the coupon data to Firebase
+        await set(couponRef, couponData);
+    } catch (err) {
+        console.error('Error saving scanned coupon data:', err);
     }
-
-    let existingData = JSON.parse(fs.readFileSync(couponDataFile, 'utf8'));
-    existingData.push(couponData);
-
-    fs.writeFileSync(couponDataFile, JSON.stringify(existingData, null, 2));
 }
-
-
-
 
 
 module.exports = userRouter;
