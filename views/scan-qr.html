@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan QR</title>
-    <link rel="stylesheet" href="/admin/scanqr.css">
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> <!-- Include library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> <!-- html5-qrcode library -->
     <style>
         #qr-reader {
             width: 100%; /* Make the QR reader fill the entire container width */
@@ -22,6 +21,48 @@
             top: 0; /* Align the video to the top */
             left: 0; /* Align the video to the left */
         }
+
+        .dashboard-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            width: 500px;
+            text-align: center;
+        }
+
+        .manual-entry {
+            margin-top: 20px;
+        }
+
+        .qr-button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 16px;
+        }
+
+        .qr-button:hover {
+            background-color: #45a049;
+        }
+
+        #status-message {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #007BFF;
+        }
+
+        #camera-status {
+            color: red;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body class="scan-qr-body">
@@ -30,7 +71,7 @@
             <!-- Camera Scan Area -->
             <div class="camera-area">
                 <h2>Scan QR Code</h2>
-                <div id="qr-reader"></div> <!-- Set fixed height for the camera area -->
+                <div id="qr-reader"></div> <!-- QR Reader area -->
                 <p id="camera-status" style="color: red;"></p>
             </div>
 
@@ -45,26 +86,27 @@
     </div>
 
     <script>
-        // Initialize the QR Code scanner using html5-qrcode
+        // Function to handle scan success
         function onScanSuccess(decodedText, decodedResult) {
-            // Display the decoded text (QR code data)
             console.log("Scanned QR Code: " + decodedText);
 
-            // Automatically fill the input field with the scanned code
-            document.getElementById("manual-code").value = decodedText;
-
-            // Display status message
-            document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
-            document.getElementById("camera-status").innerText = 'QR Code scanned, please click submit.';
+            // Check if the scanned code is a 9-digit number
+            if (/^\d{9}$/.test(decodedText)) {
+                document.getElementById("manual-code").value = decodedText;
+                document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
+                document.getElementById("camera-status").innerText = 'QR Code scanned, please click submit.';
+            } else {
+                document.getElementById("camera-status").innerText = "Invalid QR Code format. Please scan a valid 9-digit code.";
+            }
         }
 
+        // Function to handle scan error
         function onScanError(errorMessage) {
-            // Log scan errors for debugging
-            console.log(errorMessage);
-            document.getElementById("camera-status").innerText = "Error: " + errorMessage;
+            console.log("Scan error:", errorMessage);
+            document.getElementById("camera-status").innerText = "Error scanning QR code. Please try again.";
         }
 
-        // Start the QR scanner when the page loads
+        // Start the scanner when the page loads
         function startScanner() {
             const cameraStatus = document.getElementById("camera-status");
 
@@ -75,24 +117,28 @@
 
             // Request camera permission and start scanner
             navigator.mediaDevices.getUserMedia({ video: true })
-                .then(() => {
-                    const html5QrcodeScanner = new Html5QrcodeScanner(
-                        "qr-reader", {
-                            fps: 10,   // Frames per second
-                            qrbox: 250, // The size of the scanning box (for QR code detection)
-                            aspectRatio: 1, // Maintain aspect ratio for the scanner box
-                        }
-                    );
-                    html5QrcodeScanner.render(onScanSuccess, onScanError);
+                .then(function (stream) {
+                    const html5QrcodeScanner = new Html5Qrcode("qr-reader");
+                    html5QrcodeScanner.start({ facingMode: "environment" }, {
+                        fps: 10,   // Frames per second
+                        qrbox: 250  // The size of the scanning box (for QR code detection)
+                    })
+                    .then(onScanSuccess)
+                    .catch(onScanError);
+                    cameraStatus.innerText = "Scanning... Please scan a QR code.";
                 })
-                .catch(err => {
-                    cameraStatus.innerText = "Camera access denied or unavailable.";
+                .catch(function (err) {
+                    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+                        cameraStatus.innerText = "Camera access denied. Please allow camera access in your browser settings.";
+                    } else {
+                        cameraStatus.innerText = "Camera access is unavailable. Please check your device settings.";
+                    }
                     console.error("Camera permission error:", err);
                 });
         }
 
         // Handle the manual submission of QR code
-        document.getElementById("enter-code-btn").addEventListener("click", function() {
+        document.getElementById("enter-code-btn").addEventListener("click", function () {
             const qrCode = document.getElementById("manual-code").value.trim();
 
             if (!qrCode || qrCode.length !== 9) {
@@ -106,33 +152,32 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    qrCode: qrCode
+                body: JSON.stringify({ qrCode })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById("status-message").innerHTML =
+                            `QR Code Scanned Successfully! Points: ${data.points}`;
+                        alert("Points have been added to your wallet!");
+                    } else {
+                        document.getElementById("status-message").innerHTML =
+                            data.message || 'Error processing QR Code';
+                    }
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Notify user that points have been added
-                    document.getElementById("status-message").innerHTML = `QR Code Scanned Successfully! Points: ${data.points}`;
-                    alert("Points have been added to your wallet!");
-                    // Optionally, trigger a server-side action to mark the coupon as scanned
-                } else {
-                    document.getElementById("status-message").innerHTML = data.message || 'Error processing QR Code';
-                }
-            })
-            .catch(error => {
-                document.getElementById("status-message").innerHTML = 'Error sending QR Code to server.';
-                console.error('Error:', error);
-            });
+                .catch(error => {
+                    document.getElementById("status-message").innerHTML =
+                        'Error sending QR Code to server.';
+                    console.error('Error:', error);
+                });
         });
 
         // Start the camera scan when the page loads
-        window.onload = function() {
+        window.onload = function () {
             startScanner();
         };
     </script>
 
-    <script src="/admin/scanqr.js"></script>
 </body>
 </html>
+
