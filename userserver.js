@@ -83,6 +83,7 @@ userRouter.get('/dashboard', isAuthenticated, async (req, res) => {
     const mobileNumber = req.session.mobileNumber;
 
     try {
+        // Fetch user data
         const userRef = ref(db, `users/${mobileNumber}`);
         const snapshot = await get(userRef);
 
@@ -96,11 +97,29 @@ userRouter.get('/dashboard', isAuthenticated, async (req, res) => {
             return res.redirect('/user/register');
         }
 
+        // Fetch banners from Firebase
+        const bannersRef = ref(db, 'banners');
+        const bannersSnapshot = await get(bannersRef);
+
+        if (!bannersSnapshot.exists()) {
+            console.log('No banners found');
+            // If no banners found, send an empty array
+            banners = [];
+        } else {
+            const bannersData = bannersSnapshot.val();
+            // Extract banner URLs from the banners object
+            banners = Object.values(bannersData).map(banner => banner.url);
+        }
+
+        // Render the dashboard and pass user and banner data
         res.render('dashboard', {
             userName: user.fullName,
-            walletBalance: user.walletBalance
+            walletBalance: user.walletBalance,
+            banners: banners // Passing the banners array
         });
+
     } catch (err) {
+        console.error('Error fetching user or banner data:', err);
         return res.status(500).send('Error reading user data');
     }
 });
@@ -385,5 +404,5 @@ async function saveScannedCoupon(couponData) {
     }
 }
 
-
 module.exports = userRouter;
+
