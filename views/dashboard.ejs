@@ -44,10 +44,13 @@
             <p>Hi <%= userName %> 👋</p>
         </div>
 
-        <!-- Wallet Balance Section -->
+     <!-- Wallet Balance Section -->
 <div class="wallet-section">
     <p>Available Balance</p>
-    <h2>₹<%= (isNaN(walletBalance) ? 0 : parseFloat(walletBalance)).toFixed(2) %></h2>
+    <h2>
+        <span class="rupee-symbol">₹</span>
+        <span class="balance-amount"><%= (isNaN(walletBalance) ? 0 : parseFloat(walletBalance)).toFixed(2) %></span>
+    </h2>
     <div class="wallet-actions">
         <button class="wallet-btn withdraw-btn">
             <img src="https://img.icons8.com/ios-filled/50/000000/wallet.png" alt="Withdraw Icon">
@@ -60,13 +63,16 @@
     </div>
 </div>
 
-
         <!-- Banner Section with Image Slider -->
         <div class="banner-section">
             <div class="slider">
-                <img src="/admin/images/banner1.jpg" alt="Banner 1" class="slide active">
-                <img src="/admin/images/banner2.jpg" alt="Banner 2" class="slide">
-                <img src="/admin/images/banner3.jpg" alt="Banner 3" class="slide">
+                <% if (banners && banners.length > 0) { %>
+                    <% banners.forEach(function(bannerUrl) { %>
+                        <img src="<%= bannerUrl %>" alt="Banner" class="slide">
+                    <% }); %>
+                <% } else { %>
+                    <p>No banners available.</p>
+                <% } %>
             </div>
         </div>
 
@@ -74,7 +80,13 @@
         <div class="action-box">
             <button class="action-btn" title="Scan QR">
                 <div class="icon-container">
-                    <img src="https://img.icons8.com/ios-filled/50/000000/bell.png" alt="Scan QR">
+                    <img src="https://img.icons8.com/ios-filled/50/000000/shop.png" alt="Scan QR">
+                    <span class="icon-label">Products</span>
+                </div>
+            </button>
+            <button class="action-btn" title="Schemes">
+                <div class="icon-container">
+                    <img src="https://img.icons8.com/ios-filled/50/000000/discount.png" alt="Schemes">
                     <span class="icon-label">Schemes</span>
                 </div>
             </button>
@@ -101,69 +113,74 @@
             </button>
         </div>
 
-    <script>
-        let startX = 0;
-        let endX = 0;
-        const slides = document.querySelectorAll('.slide');
-        const totalSlides = slides.length;
-        let currentSlideIndex = 0; // To keep track of the current slide
-
-        // Function to show the next slide
-        function moveToNextSlide() {
-            const currentSlide = slides[currentSlideIndex];
-            currentSlide.classList.remove('active');
-            currentSlideIndex = (currentSlideIndex + 1) % totalSlides; // Loop back to the first slide
-            slides[currentSlideIndex].classList.add('active');
-        }
-
-        // Function to show the previous slide
-        function moveToPrevSlide() {
-            const currentSlide = slides[currentSlideIndex];
-            currentSlide.classList.remove('active');
-            currentSlideIndex = (currentSlideIndex - 1 + totalSlides) % totalSlides; // Loop back to the last slide
-            slides[currentSlideIndex].classList.add('active');
-        }
-
-        // Add touch events for swipe functionality
-        document.querySelector('.banner-section').addEventListener('touchstart', function(event) {
-            startX = event.touches[0].clientX;
-        });
-
-        document.querySelector('.banner-section').addEventListener('touchend', function(event) {
-            endX = event.changedTouches[0].clientX;
-            if (startX > endX) {
-                moveToNextSlide();
-            } else if (startX < endX) {
-                moveToPrevSlide();
+        <script>
+            let startX = 0;
+            let endX = 0;
+            const slides = document.querySelectorAll('.slide');
+            const totalSlides = slides.length;
+            let currentSlideIndex = 0; // To keep track of the current slide
+        
+            // Function to show the next slide
+            function moveToNextSlide() {
+                const currentSlide = slides[currentSlideIndex];
+                currentSlide.classList.remove('active');
+                currentSlideIndex = (currentSlideIndex + 1) % totalSlides; // Loop back to the first slide
+                slides[currentSlideIndex].classList.add('active');
             }
-        });
-
-        // Add mouse drag functionality for swipe
-        let isDragging = false;
-        document.querySelector('.banner-section').addEventListener('mousedown', function(event) {
-            startX = event.clientX;
-            isDragging = true;
-        });
-
-        document.querySelector('.banner-section').addEventListener('mousemove', function(event) {
-            if (isDragging) {
-                endX = event.clientX;
+        
+            // Function to show the previous slide
+            function moveToPrevSlide() {
+                const currentSlide = slides[currentSlideIndex];
+                currentSlide.classList.remove('active');
+                currentSlideIndex = (currentSlideIndex - 1 + totalSlides) % totalSlides; // Loop back to the last slide
+                slides[currentSlideIndex].classList.add('active');
             }
-        });
-
-        document.querySelector('.banner-section').addEventListener('mouseup', function() {
-            if (isDragging) {
+        
+            // Add touch events for swipe functionality
+            document.querySelector('.banner-section').addEventListener('touchstart', function(event) {
+                startX = event.touches[0].clientX;
+            });
+        
+            document.querySelector('.banner-section').addEventListener('touchend', function(event) {
+                endX = event.changedTouches[0].clientX;
                 if (startX > endX) {
                     moveToNextSlide();
                 } else if (startX < endX) {
                     moveToPrevSlide();
                 }
-                isDragging = false;
-            }
-        });
-
-        // Automatic slide change every 20 seconds
-        setInterval(moveToNextSlide, 20000); // Change slide every 20 seconds
-    </script>
+            });
+        
+            // Add mouse drag functionality for swipe
+            let isDragging = false;
+            document.querySelector('.banner-section').addEventListener('mousedown', function(event) {
+                startX = event.clientX;
+                isDragging = true;
+            });
+        
+            document.querySelector('.banner-section').addEventListener('mousemove', function(event) {
+                if (isDragging) {
+                    endX = event.clientX;
+                }
+            });
+        
+            document.querySelector('.banner-section').addEventListener('mouseup', function() {
+                if (isDragging) {
+                    if (startX > endX) {
+                        moveToNextSlide();
+                    } else if (startX < endX) {
+                        moveToPrevSlide();
+                    }
+                    isDragging = false;
+                }
+            });
+        
+            // Show the first image immediately
+            slides[currentSlideIndex].classList.add('active');
+        
+            // Automatic slide change every 20 seconds
+            setInterval(moveToNextSlide, 20000); // Change slide every 20 seconds
+        </script>
+        
 </body>
 </html>
+
