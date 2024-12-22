@@ -57,6 +57,7 @@
             position: absolute;
             top: 0;
             left: 0;
+            transform: scaleX(-1); /* Flip horizontally to correct the mirrored image */
         }
 
         /* Input and Button Styles */
@@ -166,7 +167,7 @@
     <script>
         // Initialize Instascan
         let scanner = new Instascan.Scanner({ video: document.getElementById('qr-reader') });
-        let currentCameraIndex = 0;
+        let currentCameraIndex = 1; // Start with the back camera (usually index 1)
         let cameras = [];
 
         // Function to handle scan success
@@ -261,7 +262,7 @@
                     } else {
                         document.getElementById("status-message").innerHTML =
                             'Error processing QR Code';
-                        showToast('QR Invalid or Already Scanned', 'error');
+                        showToast('QR Code Invalid or Already Scanned', 'error');
                     }
                 })
                 .catch(error => {
@@ -284,18 +285,16 @@
 
         // Toggle between cameras when the icon is clicked
         document.getElementById("toggle-camera").addEventListener("click", function () {
-            currentCameraIndex = (currentCameraIndex + 1) % cameras.length; // Toggle camera index
-            startCamera(cameras[currentCameraIndex]);
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length; // Switch between cameras
+            startCamera(cameras[currentCameraIndex]); // Restart the scanner with the new camera
         });
 
-        // Start the camera scan when the page loads
-        window.onload = function () {
-            startScanner();
-        };
+        // Start the scanner on page load
+        window.onload = startScanner;
     </script>
-
 </body>
 </html>
+
 
 
 
