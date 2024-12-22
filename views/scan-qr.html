@@ -57,7 +57,6 @@
             position: absolute;
             top: 0;
             left: 0;
-            transform: scaleX(-1); /* Flip horizontally to correct the mirrored image */
         }
 
         /* Input and Button Styles */
@@ -217,6 +216,13 @@
                 .then(function () {
                     cameraStatus.innerText = "Scanning... Please scan a QR code.";
                     console.log("Scanner started successfully.");
+
+                    // Flip the video horizontally if the front camera is being used
+                    if (currentCameraIndex === 0) {
+                        document.getElementById('qr-reader').style.transform = "scaleX(-1)"; // Apply mirroring effect
+                    } else {
+                        document.getElementById('qr-reader').style.transform = "scaleX(1)"; // Reset mirroring
+                    }
                 })
                 .catch(function (error) {
                     cameraStatus.innerText = "Error starting scanner: " + error;
@@ -262,7 +268,7 @@
                     } else {
                         document.getElementById("status-message").innerHTML =
                             'Error processing QR Code';
-                        showToast('QR Code Invalid or Already Scanned', 'error');
+                        showToast('QR Invalid or Already Scanned', 'error');
                     }
                 })
                 .catch(error => {
@@ -285,15 +291,17 @@
 
         // Toggle between cameras when the icon is clicked
         document.getElementById("toggle-camera").addEventListener("click", function () {
-            currentCameraIndex = (currentCameraIndex + 1) % cameras.length; // Switch between cameras
-            startCamera(cameras[currentCameraIndex]); // Restart the scanner with the new camera
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length; // Toggle camera index
+            startCamera(cameras[currentCameraIndex]);
         });
 
-        // Start the scanner on page load
+        // Start the camera scan when the page loads
         window.onload = startScanner;
     </script>
+
 </body>
 </html>
+
 
 
 
