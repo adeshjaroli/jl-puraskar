@@ -176,15 +176,33 @@
                 .then(function (cameras) {
                     if (cameras.length > 0) {
                         console.log("Camera(s) found:", cameras);
-                        scanner.start(cameras[0]) // Start scanning with the first available camera
-                            .then(function () {
-                                cameraStatus.innerText = "Scanning... Please scan a QR code.";
-                                console.log("Scanner started successfully.");
-                            })
-                            .catch(function (error) {
-                                cameraStatus.innerText = "Error starting scanner: " + error;
-                                console.error("Error starting Instascan:", error);
-                            });
+
+                        // Find the back camera
+                        let backCamera = cameras.find(camera => camera.position === 'back');
+                        
+                        // If a back camera is found, use it, otherwise, use the first camera
+                        if (backCamera) {
+                            scanner.start(backCamera) // Start scanning with the back camera
+                                .then(function () {
+                                    cameraStatus.innerText = "Scanning... Please scan a QR code.";
+                                    console.log("Scanner started successfully.");
+                                })
+                                .catch(function (error) {
+                                    cameraStatus.innerText = "Error starting scanner: " + error;
+                                    console.error("Error starting Instascan:", error);
+                                });
+                        } else {
+                            // If no back camera, use the first available camera
+                            scanner.start(cameras[0]) 
+                                .then(function () {
+                                    cameraStatus.innerText = "Scanning... Please scan a QR code.";
+                                    console.log("Scanner started successfully.");
+                                })
+                                .catch(function (error) {
+                                    cameraStatus.innerText = "Error starting scanner: " + error;
+                                    console.error("Error starting Instascan:", error);
+                                });
+                        }
                     } else {
                         cameraStatus.innerText = "No camera found on this device.";
                         console.log("No camera found.");
@@ -263,5 +281,6 @@
 
 </body>
 </html>
+
 
 
