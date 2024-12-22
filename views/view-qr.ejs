@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Batches</title>
+    <link rel="stylesheet" href="/admin/view-qr.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QR Code Batches</h1>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search by 9-digit QR code..." onkeyup="searchQRCode()">
+                <button onclick="searchQRCode()">Search</button>
+            </div>
+        </header>
+
+        <div class="batch-list" id="batchList">
+            <!-- EJS loop to render batches -->
+            <% qrBatches.forEach(function(batch) { %>
+                <div class="batch-card" data-id="<%= batch.id %>">
+                    <div class="batch-info">
+                        <span><strong>Batch:</strong> <%= batch.id %></span>
+                        <span><strong>Date:</strong> <%= batch.createdAt %></span>
+                        <span><strong>Points:</strong> <%= batch.points %></span>
+                        <span><strong>Coupons:</strong> <%= batch.couponCount %></span>
+                    </div>
+                    <div class="buttons">
+                        <button class="btn view-btn" onclick="viewBatch('<%= batch.id %>')">View</button>
+                        <button class="btn download-btn" onclick="downloadBatch('<%= batch.id %>')">Download</button>
+                        <button class="btn edit-btn" onclick="editBatch('<%= batch.id %>')">Edit</button>
+                        <button class="btn delete-btn" onclick="deleteBatch('<%= batch.id %>')">Delete</button>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <div id="searchResult" class="search-result" style="display: none;">
+            <h2>QR Code Details</h2>
+            <div class="qr-details">
+                <p><strong>QR Code:</strong> <span id="qrCodeValue"></span></p>
+                <p><strong>Batch:</strong> <span id="qrBatchValue"></span></p>
+                <p><strong>Points:</strong> <span id="qrPoints"></span></p>
+                <p><strong>Status:</strong> <span id="qrStatus"></span></p>
+                <p><strong>Scanned By:</strong> <span id="scannedBy"></span></p>
+                <p><strong>Created At:</strong> <span id="qrCreatedAt"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to search QR code
+        function searchQRCode() {
+            const code = document.getElementById("searchInput").value.trim().toUpperCase();
+            const batchList = document.getElementById("batchList");
+            const batches = batchList.getElementsByClassName("batch-card");
+            
+            // Loop through all batch cards and hide the ones that don't match the search code
+            Array.from(batches).forEach(function(batch) {
+                const batchId = batch.getAttribute("data-id").toUpperCase();
+                if (batchId.includes(code)) {
+                    batch.style.display = "block";
+                } else {
+                    batch.style.display = "none";
+                }
+            });
+        }
+
+        // Function to view a batch
+        function viewBatch(batchId) {
+            window.location.href = `/admin/view-qr/${batchId}`;
+        }
+
+        // Function to download a batch
+        function downloadBatch(batchId) {
+            window.location.href = `/admin/download-batch/${batchId}`;
+        }
+
+        // Function to edit a batch (placeholder for actual logic)
+        function editBatch(batchId) {
+            const newPoints = prompt("Enter new points for this batch:");
+            if (newPoints) {
+                fetch(`/admin/edit-batch/${batchId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ points: newPoints })
+                }).then(() => alert("Batch points updated successfully"));
+            }
+        }
+
+        function deleteBatch(batchId) {
+    // Ask for password before deleting
+    const password = prompt("Please enter the password to delete the batch:");
+
+    if (password === null || password === "") {
+        alert("Password is required to proceed.");
+        return;
+    }
+
+    // Send the DELETE request with the password in the body
+    fetch(`/admin/delete-batch/${batchId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password })  // Include password in the request body
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Failed to delete batch.");
+    });
+}
+
+    </script>
+</body>
+</html>

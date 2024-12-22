@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dealer Management</title>
+    <link rel="stylesheet" href="/admin/create-dealer.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Create Dealer Button -->
+        <div class="header">
+            <button class="btn" id="createDealerBtn">Create New Dealer</button>
+        </div>
+
+        <!-- Create Dealer Form -->
+        <div id="createDealerForm" class="form-container" style="display: none;">
+            <h2>Create New Dealer</h2>
+            <form action="/admin/create-dealer" method="POST">
+                <div class="input-group">
+                    <label for="userId">User ID</label>
+                    <input type="text" id="userId" name="userId" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn">Create Dealer</button>
+            </form>
+        </div>
+
+        <!-- Dealer List -->
+        <div class="dealer-list-container">
+            <h2>All Dealers</h2>
+            <table id="dealerList">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Password</th> <!-- Added Password Column -->
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dealer rows will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("createDealerBtn").addEventListener("click", function() {
+            // Toggle the form visibility
+            const form = document.getElementById("createDealerForm");
+            form.style.display = form.style.display === "none" ? "block" : "none";
+        });
+
+        // Function to load dealers list (replace with your actual data-fetching mechanism)
+        function loadDealers() {
+            // This should call your backend API to get all dealers
+            fetch('/admin/dealers')
+                .then(response => response.json())
+                .then(data => {
+                    const dealerList = document.getElementById('dealerList').getElementsByTagName('tbody')[0];
+                    dealerList.innerHTML = '';  // Clear current list
+                    data.dealers.forEach(dealer => {
+                        const row = dealerList.insertRow();
+                        row.innerHTML = `
+                            <td>${dealer.userId}</td>
+                            <td>${dealer.password}</td> <!-- Displaying Password -->
+                            <td>
+                                        <button class="btn delete-btn" onclick="deleteDealer('${dealer.id}')">Delete</button>
+                            </td>
+                        `;
+                    });
+                })
+                .catch(error => console.error('Error fetching dealers:', error));
+        }
+
+        // Function to delete a dealer
+        function deleteDealer(dealerId) {
+            fetch(`/admin/delete-dealer/${dealerId}`, {
+                method: 'DELETE',
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Dealer deleted successfully!');
+                    loadDealers();  // Reload dealer list after deletion
+                } else {
+                    alert('Failed to delete dealer');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting dealer:', error);
+                alert('An error occurred while deleting dealer');
+            });
+        }
+        // Call the loadDealers function when the page loads
+        window.onload = loadDealers;
+    </script>
+</body>
+</html>

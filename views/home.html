@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Home</title>
+    <link rel="stylesheet" href="/admin/home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <!-- Admin Panel heading removed -->
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="/admin/create-qr"><i class="fas fa-qrcode"></i> Create QR Code</a></li>
+                <li><a href="/admin/view-qr"><i class="fas fa-history"></i> View Past Batches</a></li>
+                <li><a href="/admin/user-management"><i class="fas fa-users"></i> User Management</a></li>
+                <li><a href="/admin/qr-admin-history"><i class="fas fa-list-alt"></i> QR Scan History</a></li>
+                        <li><a href="/admin/wallet"><i class="fas fa-wallet"></i> Wallet</a></li>
+                        <li><a href="/admin/create-dealer"><i class="fas fa-users"></i> Create Dealer </a></li>
+                <li><a href="/admin/banner"><i class="fas fa-image"></i> Edit Banner</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0)"><i class="fas fa-building"></i> Bank <i class="fas fa-chevron-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/bank/details">Bank Details</a>
+                        <a href="/bank/withdraw">Withdraw Requests</a>
+                    </div>
+                </li>
+                <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+
+                <!-- Backup Button with Icon -->
+                <li><button id="backupButton"><i class="fas fa-database"></i> Backup</button></li>
+            </ul>
+        </div>
+        
+        <!-- Sidebar Toggle Button (always visible) -->
+        <button id="sidebarToggle" class="sidebar-toggle-btn">
+            <i class="fa fa-bars"></i> <!-- Use Font Awesome for the icon -->
+        </button>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Welcome to Admin Panel</h1>
+                <p>Manage your website efficiently</p>
+            </div>
+
+            <!-- Analytics Section -->
+            <div class="statistics">
+                <div class="stat-box">
+                    <h3>Total Users</h3>
+                    <p id="total-users">150</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Total QR Scanned</h3>
+                    <p id="total-qr">200</p>
+                    <!-- Slider for time period -->
+                    <div class="slider-container">
+                        <label for="qr-slider">Time Period:</label>
+                        <select id="qr-slider">
+                            <option value="1">1 Day</option>
+                            <option value="7">1 Week</option>
+                            <option value="30">1 Month</option>
+                            <option value="365">1 Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <h3>Total Points Scanned</h3>
+                    <p id="total-points">5000</p>
+                    <!-- Button to select time period for points -->
+                    <div class="button-container">
+                        <label for="points-period">Time Period:</label>
+                        <select id="points-period">
+                            <option value="1">1 Day</option>
+                            <option value="7">1 Week</option>
+                            <option value="30">1 Month</option>
+                            <option value="365">1 Year</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+      // Fetch total users
+      fetch('/data/users.json')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Users Data:', data);  // Check if data is being fetched correctly
+            const totalUsers = data.filter(user => user.isRegistered).length;  // Count only registered users
+            document.getElementById('total-users').textContent = totalUsers;
+        });
+
+      // Fetch total QR codes scanned within the last 24 hours
+      fetch('/data/coupondata.json')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Coupon Data:', data);  // Check if coupon data is being fetched correctly
+            let totalQR = 0;
+            const currentDate = new Date();
+            data.forEach(coupon => {
+                const scanDate = new Date(coupon.dateScanned);
+                const timeDifference = Math.floor((currentDate - scanDate) / (1000 * 60 * 60 * 24)); // in days
+                if (timeDifference <= 1) {  // If the coupon was scanned within the last 1 day
+                    totalQR++;
+                }
+            });
+            document.getElementById('total-qr').textContent = totalQR;
+        });
+
+      // Fetch total points accumulated in the last 24 hours
+      fetch('/data/coupondata.json')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Coupon Data:', data);  // Check if coupon data is being fetched correctly
+            let totalPoints = 0;
+            const currentDate = new Date();
+            data.forEach(coupon => {
+                const scanDate = new Date(coupon.dateScanned);
+                const timeDifference = Math.floor((currentDate - scanDate) / (1000 * 60 * 60 * 24)); // in days
+                if (timeDifference <= 1) {  // If the coupon was scanned within the last 1 day
+                    totalPoints += coupon.points;
+                }
+            });
+            document.getElementById('total-points').textContent = totalPoints;
+        });
+
+      document.getElementById('sidebarToggle').addEventListener('click', function() {
+        var sidebar = document.querySelector('.sidebar');
+        var mainContent = document.querySelector('.main-content');
+
+        sidebar.classList.toggle('hidden');
+        mainContent.classList.toggle('expanded');
+      });
+
+      document.getElementById('backupButton').addEventListener('click', function() {
+            const password = prompt("Enter the backup password:");
+
+            if (password === null || password === '') {
+                alert("Password is required!");
+                return;
+            }
+
+            // Send the password via a POST request to the server
+            fetch('/admin/backup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password: password })
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.blob();
+                } else {
+                    throw new Error("Unauthorized");
+                }
+            })
+            .then(blob => {
+                // Create a link to download the zip file
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'backup.zip';
+                link.click();
+            })
+            .catch(error => {
+                alert(error.message || "Something went wrong!");
+            });
+        });
+
+    </script>
+</body>
+</html>
+

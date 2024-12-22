@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit User</title>
+    <link rel="stylesheet" href="/admin/edit-user.css"> <!-- CSS for form styling -->
+    <script>
+        // Function to validate password before submitting the form
+        function validatePassword(event) {
+            event.preventDefault(); // Prevent form submission
+            const password = prompt("Enter the password to save changes:");
+            if (password === "123456789") {
+                // If password is correct, submit the form
+                document.getElementById("editUserForm").submit();
+            } else {
+                alert("Incorrect password. Changes will not be saved.");
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Edit User</h1>
+    <form id="editUserForm" action="/admin/edit-user/<%= user.mobileNumber %>" method="POST" onsubmit="validatePassword(event)">
+        <label for="fullName">Full Name:</label>
+        <input type="text" id="fullName" name="fullName" value="<%= user.fullName %>" required>
+
+        <label for="mobileNumber">Mobile Number:</label>
+        <input type="text" id="mobileNumber" name="mobileNumber" value="<%= user.mobileNumber %>" readonly>
+
+        <label for="dob">Date of Birth:</label>
+        <input type="date" id="dob" name="dob" value="<%= user.dob %>">
+
+        <label for="userType">User Type:</label>
+        <select id="userType" name="userType">
+            <option value="painter" <%= user.userType === 'painter' ? 'selected' : '' %>>Painter</option>
+            <option value="contractor" <%= user.userType === 'contractor' ? 'selected' : '' %>>Contractor</option>
+        </select>
+
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address" value="<%= user.address %>">
+
+        <label for="pinCode">Pin Code:</label>
+        <input type="text" id="pinCode" name="pinCode" value="<%= user.pinCode %>">
+
+        <label for="state">State:</label>
+        <input type="text" id="state" name="state" value="<%= user.state %>">
+
+        <label for="city">City:</label>
+        <input type="text" id="city" name="city" value="<%= user.city %>">
+
+        <label for="status">Status:</label>
+        <select id="status" name="status">
+            <option value="active" <%= user.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="inactive" <%= user.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+        </select>
+
+        <label for="walletBalance">Wallet Balance:</label>
+        <input type="number" id="walletBalance" name="walletBalance" value="<%= user.walletBalance %>">
+
+        <button type="submit">Save Changes</button>
+    </form>
+</body>
+</html>

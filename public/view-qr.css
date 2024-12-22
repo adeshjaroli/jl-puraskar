@@ -1,0 +1,167 @@
+/* Global Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8faff;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 10px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 {
+    color: #555;
+    font-size: 28px;
+}
+
+/* Search Bar */
+.search-bar {
+    display: flex;
+    gap: 5px;
+    border-radius: 30px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 5px;
+}
+
+.search-bar input {
+    border: none;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 16px;
+    outline: none;
+}
+
+.search-bar button {
+    background-color: #4A90E2;
+    border: none;
+    border-radius: 20px;
+    color: white;
+    font-size: 16px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.search-bar button:hover {
+    background-color: #357ABD;
+}
+
+/* Batch List */
+.batch-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.batch-card {
+    background: linear-gradient(135deg, #e0e7ff, #d1d5db);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.batch-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Batch Info */
+.batch-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: bold;
+    color: #555555;
+}
+
+/* Buttons */
+.buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.btn {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    font-size: 14px;
+    border-radius: 20px;
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
+}
+
+.btn:hover {
+    transform: scale(1.05);
+}
+
+.view-btn {
+    background-color: #4CAF50;
+}
+
+.download-btn {
+    background-color: #2196F3;
+}
+
+.edit-btn {
+    background-color: #FF9800;
+}
+
+.active-btn {
+    background-color: #FF5252;
+}
+
+.deactivate-btn {
+    background-color: #4CAF50;
+}
+
+.delete-btn {
+    background-color: #F44336;
+}
+
+/* Search Result */
+.search-result {
+    margin-top: 30px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.5s ease;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.search-result h2 {
+    color: #4A90E2;
+    font-size: 20px;
+}
+
+.qr-details p {
+    font-size: 14px;
+    color: #555;
+    margin: 8px 0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
