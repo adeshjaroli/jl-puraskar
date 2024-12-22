@@ -7,6 +7,9 @@ const { getDatabase, ref, set, get, update } = require('firebase/database');
 const fs = require('fs');
 const archiver = require("archiver"); // To create ZIP files
 const { remove } = require('firebase/database');
+const axios = require("axios"); // To make HTTP requests to ImageBB
+const multer = require("multer"); // For handling file uploads
+const FormData = require('form-data');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -717,4 +720,98 @@ adminRouter.delete('/delete-dealer/:dealerId', async (req, res) => {
     }
 });
 
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+      cb(null, file.originalname);
+    }
+  });
+  
+  const upload = multer({ storage: storage });
+  
+  // Serve the banner management page
+adminRouter.get("/banner", async (req, res) => {
+    try {
+      // Fetch all banners from Firebase Realtime Database
+      const bannerRef = ref(db, 'banners');
+      const snapshot = await get(bannerRef);
+      const banners = snapshot.exists() ? snapshot.val() : {};
+  
+      res.render('banner.ejs', { banners });
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      res.status(500).json({ message: "Error fetching banners", error: error.message });
+    }
+  });
+  
+  // Route to upload banner image
+  adminRouter.post("/upload-banner", upload.single("banner"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+  
+    try {
+      // Prepare form data for ImageBB upload
+      const formData = new FormData();
+      formData.append("image", fs.createReadStream(req.file.path));
+  
+      // Upload to ImageBB
+      const response = await axios.post(
+        `https://api.imgbb.com/1/upload?key=1835e283acf17591852a41a8fcb59be8`, 
+        formData, 
+        { headers: formData.getHeaders() }
+      );
+  
+      if (response.data && response.data.data && response.data.data.url) {
+        const bannerUrl = response.data.data.url;
+  
+        // Save the URL in Firebase Realtime Database
+        const bannerRef = ref(db, 'banners');
+        const newBannerRef = ref(db, 'banners/' + Date.now());
+        await set(newBannerRef, {
+          url: bannerUrl,
+          createdAt: new Date().toISOString()
+        });
+  
+        // Log and send the success response
+        console.log(`Banner uploaded successfully: ${bannerUrl}`);
+        res.json({ message: "Banner uploaded successfully", url: bannerUrl });
+      } else {
+        console.error("ImageBB upload failed:", response.data);
+        res.status(500).json({ message: "Error uploading banner" });
+      }
+    } catch (error) {
+      console.error("Error during upload:", error);
+      res.status(500).json({ message: "Error uploading banner", error: error.message });
+    }
+  });
+  
+  // Route to delete banner
+  adminRouter.post("/delete-banner", async (req, res) => {
+    const { bannerId } = req.body;
+  
+    if (!bannerId) {
+      return res.status(400).json({ message: "No banner ID provided." });
+    }
+  
+    try {
+      // Remove banner from Firebase
+      const bannerRef = ref(db, 'banners/' + bannerId);
+      await remove(bannerRef);
+  
+      // Log and send the success response
+      console.log(`Banner with ID ${bannerId} deleted successfully.`);
+      res.json({ message: "Banner deleted successfully" });
+    } catch (error) {
+      console.error("Error during deletion:", error);
+      res.status(500).json({ message: "Error deleting banner", error: error.message });
+    }
+  });
+
+  // Export the adminRouter to be used in server.js
 module.exports = adminRouter;
+
