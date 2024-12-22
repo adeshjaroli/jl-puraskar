@@ -98,7 +98,16 @@ body {
 .wallet-section h2 {
     font-size: 2em;
     margin: 2px 0;
+    display: flex;
+    align-items: center; /* Aligns rupee symbol and balance correctly */
 }
+
+/* Add this to specifically handle the rupee symbol */
+.wallet-section h2 .rupee-symbol {
+    font-size: 1em; /* Adjust size of the rupee symbol */
+    margin-right: 5px; /* Add space between the rupee symbol and balance */
+}
+
 
 /* Wallet Action Buttons inside the Wallet Section */
 .wallet-actions {
@@ -262,3 +271,4 @@ body {
         height: 35px;
     }
 }
+
