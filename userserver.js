@@ -404,5 +404,13 @@ async function saveScannedCoupon(couponData) {
     }
 }
 
+// Define the route for the product page
+userRouter.get('/products', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'products.html')); // Serve the product page HTML
+});
+
+
 module.exports = userRouter;
+
+
 
