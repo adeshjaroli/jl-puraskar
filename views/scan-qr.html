@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan QR</title>
-    <script src="https://cdn.rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <script src="https://cdn.rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script> <!-- Instascan library -->
+    <!-- Include FontAwesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 
     <style>
@@ -144,8 +145,9 @@
             <!-- Camera Scan Area -->
             <div class="camera-area">
                 <h2>Scan QR Code</h2>
-                <video id="qr-reader"></video>
+                <video id="qr-reader"></video> <!-- Video element for Instascan -->
                 <p id="camera-status" style="color: red;"></p>
+                <!-- Camera icon to switch between front and back cameras -->
                 <i id="toggle-camera" class="fas fa-camera-rotate"></i>
             </div>
 
@@ -159,92 +161,144 @@
         </div>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast"></div> <!-- Success Notification Toast -->
 
     <script>
+        // Initialize Instascan
         let scanner = new Instascan.Scanner({ video: document.getElementById('qr-reader') });
+        let currentCameraIndex = 1; // Start with the back camera (usually index 1)
         let cameras = [];
-        let currentCameraIndex = 0;
 
-        scanner.addListener('scan', function(decodedText) {
+        // Function to handle scan success
+        scanner.addListener('scan', function (decodedText) {
+            console.log("Scanned QR Code: " + decodedText);
+
+            // Check if the scanned code is a 9-character alphanumeric string
             if (/^[a-zA-Z0-9]{9}$/.test(decodedText)) {
-                document.getElementById("manual-code").value = decodedText;
+                document.getElementById("manual-code").value = decodedText; // Automatically fill the field with the QR code
                 document.getElementById("status-message").innerHTML = "QR Code Scanned: " + decodedText;
-                document.getElementById("camera-status").innerText = '';
+                document.getElementById("camera-status").innerText = ''; // Clear error message
+
+                // Automatically submit the QR code after scanning
                 document.getElementById("enter-code-btn").click();
             } else {
-                document.getElementById("camera-status").innerText = "Invalid QR Code format.";
-                showToast("Invalid QR Code format.", 'error');
+                document.getElementById("camera-status").innerText = "Invalid QR Code format. Please scan a valid 9-character alphanumeric code.";
+                showToast("Invalid QR Code. Please scan a valid 9-character alphanumeric code.", 'error');
             }
         });
 
+        // Start the scanner when the page loads
         function startScanner() {
             const cameraStatus = document.getElementById("camera-status");
+
+            // Check for available cameras
             Instascan.Camera.getCameras()
-                .then(function(cam) {
+                .then(function (cam) {
                     cameras = cam;
                     if (cameras.length > 0) {
-                        selectCamera('environment');
+                        console.log("Camera(s) found:", cameras);
+                        startCamera(cameras[currentCameraIndex]);
                     } else {
-                        cameraStatus.innerText = "No cameras found on this device.";
+                        cameraStatus.innerText = "No camera found on this device.";
+                        console.log("No camera found.");
                     }
                 })
-                .catch(function(err) {
+                .catch(function (err) {
                     cameraStatus.innerText = "Error accessing camera: " + err;
+                    console.error("Error getting cameras:", err);
                 });
         }
 
-        function selectCamera(facing) {
-            const selectedCamera = cameras.find(cam => cam.facing === facing) || cameras[0];
-            if (selectedCamera) {
-                scanner.start(selectedCamera).then(() => {
-                    document.getElementById('qr-reader').style.transform = facing === 'user' ? "scaleX(-1)" : "scaleX(1)";
-                }).catch(err => {
-                    console.error(err);
+        // Function to start the camera
+        function startCamera(camera) {
+            const cameraStatus = document.getElementById("camera-status");
+            scanner.start(camera) 
+                .then(function () {
+                    cameraStatus.innerText = "Scanning... Please scan a QR code.";
+                    console.log("Scanner started successfully.");
+
+                    // Flip the video horizontally if the front camera is being used
+                    if (currentCameraIndex === 0) {
+                        document.getElementById('qr-reader').style.transform = "scaleX(-1)"; // Apply mirroring effect
+                    } else {
+                        document.getElementById('qr-reader').style.transform = "scaleX(1)"; // Reset mirroring
+                    }
+                })
+                .catch(function (error) {
+                    cameraStatus.innerText = "Error starting scanner: " + error;
+                    console.error("Error starting Instascan:", error);
                 });
-            }
         }
 
-        document.getElementById("enter-code-btn").addEventListener("click", function() {
+        // Handle the manual submission of QR code
+        document.getElementById("enter-code-btn").addEventListener("click", function () {
             const qrCode = document.getElementById("manual-code").value.trim();
+
             if (!qrCode || qrCode.length !== 9) {
                 alert("Please enter a valid 9-character alphanumeric QR code.");
                 return;
             }
+
+            // Send the QR code data to the backend for processing
             fetch('/user/scan-qr', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ qrCode })
             })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        const points = data.points || 0; // Fetch the points and show them in the notification
                         document.getElementById("status-message").innerHTML =
-                            `Coupon Scanned Successfully! ${data.points || 0} rupees added to your wallet.`;
+                            Coupon Scanned Successfully! ${points} rupees added to your wallet.;
+                        showToast(You got ${points} rupees added to your wallet!, 'success');
+
+                        // Clear the input field for the next scan
+                        document.getElementById("manual-code").value = '';
+                    } else if (data.message === 'Coupon already scanned') {
+                        document.getElementById("status-message").innerHTML =
+                            'This coupon has already been scanned. Please try a different one.';
+                        showToast('This coupon has already been scanned.', 'error');
+                    } else if (data.message === 'Invalid QR code') {
+                        document.getElementById("status-message").innerHTML =
+                            'The QR code is invalid. Please try again with a valid code.';
+                        showToast('The QR code is invalid. Please try again with a valid code.', 'error');
+                    } else {
+                        document.getElementById("status-message").innerHTML =
+                            'Error processing QR Code';
+                        showToast('QR Invalid or Already Scanned', 'error');
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(error => {
+                    document.getElementById("status-message").innerHTML =
+                        'Error sending QR Code to server.';
+                    console.error('Error:', error);
+                });
         });
 
-        document.getElementById("toggle-camera").addEventListener("click", function() {
-            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
-            const selectedCamera = cameras[currentCameraIndex];
-            scanner.start(selectedCamera).then(() => {
-                document.getElementById('qr-reader').style.transform =
-                    selectedCamera.facing === 'user' ? "scaleX(-1)" : "scaleX(1)";
-            }).catch(err => console.error(err));
-        });
-
+        // Show success or error toast
         function showToast(message, type = 'success') {
             const toast = document.getElementById("toast");
             toast.innerText = message;
-            toast.style.backgroundColor = type === 'success' ? '#4CAF50' : '#e74c3c';
+            toast.style.backgroundColor = type === 'success' ? '#4CAF50' : '#e74c3c'; // Green for success, red for error
             toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 3000);
+            setTimeout(function () {
+                toast.style.display = 'none';
+            }, 3000);
         }
 
+        // Toggle between cameras when the icon is clicked
+        document.getElementById("toggle-camera").addEventListener("click", function () {
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length; // Toggle camera index
+            startCamera(cameras[currentCameraIndex]);
+        });
+
+        // Start the camera scan when the page loads
         window.onload = startScanner;
     </script>
+
 </body>
 </html>
 
