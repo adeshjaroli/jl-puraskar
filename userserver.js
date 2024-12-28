@@ -23,11 +23,6 @@ const db = getDatabase(app); // Get reference to the Firebase Realtime Database
 
 const userRouter = express.Router();
 
-const cashfreeCredentials = {
-    appId: 'YCF73772CTL92M57QDUC73BAM27G',
-    secretKey: 'cfsk_ma_test_667dadf1ea171b403f44a56e9b035bff_b2e11877',
-  };
-
 // Initialize session middleware
 userRouter.use(
     session({
@@ -415,143 +410,85 @@ userRouter.get('/products', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'products.html')); // Serve the product page HTML
 });
 
-// Route to serve the withdrawal page
-userRouter.get('/withdrawl', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views','withdrawl.html') );
-});
-
-// Route to handle withdrawal form submission
-// Route for initiating withdrawal
-userRouter.post('/withdraw', async (req, res) => {
-    const { userId, amount } = req.body;
-
-    // Log the incoming request details
-    console.log(`Received withdrawal request: UserID=${userId}, Amount=${amount}`);
-
-    // Basic validation
-    if (!amount || amount < 50) {
-        return res.status(400).json({
-            success: false,
-            message: 'Minimum withdrawal amount is ₹50',
-        });
-    }
-
-    // Construct the Cashfree payout request payload
-    const payoutData = {
-        order_id: `ORD${Date.now()}`, // Unique order ID based on current timestamp
-        order_amount: amount,
-        beneficiary_id: userId, // Use userId as beneficiary id (assumes userId maps to Cashfree beneficiary)
-        transfer_mode: 'NEFT', // You can change this to any valid payout mode (e.g., IMPS, UPI)
-        transfer_date: new Date().toISOString(),
-        remarks: 'Withdrawal from application',
-    };
-
-    const cashfreePayoutUrl = 'https://sandbox.cashfree.com/api/v2/cashfree/payouts'; // Use sandbox for testing
-
-    // Set headers with Cashfree API credentials
-    const headers = {
-        'Content-Type': 'application/json',
-        'x-api-version': '1.0', // Cashfree API version
-        'x-client-id': cashfreeCredentials.appId,
-        'x-client-secret': cashfreeCredentials.secretKey,
-    };
-
-    try {
-        // Log the payout request data before sending
-        console.log('Sending payout request to Cashfree:', payoutData);
-
-        // Make the API call to Cashfree
-        const response = await axios.post(cashfreePayoutUrl, payoutData, { headers });
-
-        // Log the full Cashfree API response
-        console.log("Cashfree API response:", response.data);
-
-        // Check if the response indicates success
-        if (response.data && response.data.status === 'SUCCESS') {
-            // Log the successful transaction
-            console.log('Withdrawal processed successfully:', response.data);
-
-            return res.status(200).json({
-                success: true,
-                message: 'Withdrawal processed successfully!',
-                transactionId: response.data.transaction_id,
-                amount: amount,
-                status: 'SUCCESS',
-            });
-        } else {
-            // Log any error from Cashfree response
-            console.log('Error in Cashfree response:', response.data);
-            throw new Error('Cashfree API call failed');
-        }
-    } catch (error) {
-        // Log any errors that occur during the request
-        console.error('Error during Cashfree API call:', error.response ? error.response.data : error.message);
-        return res.status(500).json({
-            success: false,
-            message: 'An error occurred while processing the withdrawal.',
-            error: error.response ? error.response.data : error.message,
-        });
-    }
-});
-
 // Serve the create-beneficiary page when visiting /create-beneficiary
-userRouter.get('/beneficiary', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'beneficiary.html'));
-});
-
-// Cashfree API credentials
-const CASHFREE_API_ID = 'YCF73772CTL92M57QDUC73BAM27G'; // Replace with your actual API ID
-const CASHFREE_API_SECRET = 'cfsk_ma_test_667dadf1ea171b403f44a56e9b035bff_b2e11877'; // Replace with your actual API secret
-
-// Cashfree API URL (check Cashfree documentation for the correct endpoint)
-const CASHFREE_API_URL = 'https://payout-gamma.cashfree.com/payout/v1/addBeneficiary'; // Ensure this is correct
-
-// Route to handle adding a beneficiary
-userRouter.post('/add-beneficiary', async (req, res) => {
-    const { name, phone , email, accountNumber , ifsc , address1, beneId    } = req.body;
-
-    // Replace with your actual Cashfree Bearer Token
-    const CASHFREE_TOKEN = 'Bearer eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6IkNGMjAyNjBDTDBFM00wSk81UktTN0tPRzA1RyIsImFjY291bnRJZCI6NDc0NTI5LCJzaWduYXR1cmVDaGVjayI6ZmFsc2UsImlwIjoiIiwiYWdlbnQiOiJQQVlPVVQiLCJjaGFubmVsIjoiIiwiYWdlbnRJZCI6NDc0NTI5LCJraWQiOiJDRjIwMjYwQ0wwRTNNMEpPNVJLUzdLT0cwNUciLCJlbmFibGVBcGkiOnRydWUsImV4cCI6MTczNTA0MzY0MSwiaWF0IjoxNzM1MDQzMDQxLCJzdWIiOiJQQVlPVVRBUElfQVVUSCJ9.vjEGpRDkFLDIrknQ8fjXcnxeSeN7mBiCquMezCy7a-YcO69qKmv8vLWF7bO3HAV0'; // Replace with your actual Bearer token
-
-    // Log the token for debugging
-    console.log("Using Token:", CASHFREE_TOKEN);
-
-    // Headers for Cashfree API request
-    const headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': CASHFREE_TOKEN, // Ensure the token is set correctly
-    };
-
-    // Data for the beneficiary
-    const data = {
-      name,
-      phone, 
-      email,
-      accountNumber,
-      ifsc,
-      address1,
-      beneId,
-    };
-
-    try {
-        // Sending the POST request to Cashfree API
-        const response = await axios.post(CASHFREE_API_URL, data, { headers });
-
-        // Log the response from Cashfree API for debugging
-        console.log("Cashfree API Response:", response.data);
-
-        // Success - Beneficiary added successfully
-        if (response.data.status === 'SUCCESS') {
-            res.status(200).json({ message: 'Beneficiary added successfully!', data: response.data });
-        } else {
-            // Error - Response returned failure
-            res.status(400).json({ message: response.data.message, data: response.data });
-        }
-    } catch (error) {
-        // Error - If the Cashfree API call fails
-        console.error('Error during Cashfree API call:', error.response ? error.response.data : error.message);
-        res.status(500).json({ message: 'Error during Cashfree API call', error: error.response ? error.response.data : error.message });
+userRouter.get('/add-bank', isAuthenticated, async (req, res) => {
+    const mobileNumber = req.session.mobileNumber;
+    console.log('Mobile Number from Session:', mobileNumber);
+  
+    if (!mobileNumber) {
+      return res.status(400).json({ message: 'Mobile number not found in session' });
     }
+  
+    try {
+      res.render('add-bank', { mobileNumber }); // Pass the mobile number to the EJS template
+    } catch (error) {
+      console.error('Error rendering add-bank page:', error.message);
+      res.status(500).json({ message: 'Error loading page', error: error.message });
+    }
+  });
+
+// POST endpoint for adding a beneficiary
+// Your Cashfree credentials
+const CLIENT_ID = 'CF73772CTNU5FL7QDUC73BAM3DG';
+const CLIENT_SECRET = 'cfsk_ma_test_0a290e0b7f1a3fae1b989d161af85646_948f4605';
+
+// POST endpoint for adding a beneficiary
+userRouter.post('/add-beneficiary', async (req, res) => {
+  const {
+    beneficiaryName,
+    bankAccountNumber,
+    bankIFSC,
+    vpa,
+    beneficiaryPhone,
+    beneficiaryCountryCode,
+  } = req.body;
+
+  if (!beneficiaryName || !bankAccountNumber || !bankIFSC || !beneficiaryPhone) {
+    return res.status(400).json({ message: 'Required fields are missing' });
+  }
+
+  // Generate Beneficiary ID
+  const beneficiaryId = `JL${ req.session.mobileNumber}`;
+
+  const options = {
+    method: 'POST',
+    url: 'https://sandbox.cashfree.com/payout/beneficiary',
+    headers: {
+      accept: 'application/json',
+      'x-api-version': '2024-01-01',
+      'content-type': 'application/json',
+      'x-client-id': CLIENT_ID,
+      'x-client-secret': CLIENT_SECRET,
+    },
+    data: {
+      beneficiary_id: beneficiaryId,
+      beneficiary_name: beneficiaryName,
+      beneficiary_instrument_details: {
+        bank_account_number: bankAccountNumber,
+        bank_ifsc: bankIFSC,
+        vpa: vpa || null, // Optional field
+      },
+      beneficiary_contact_details: {
+        beneficiary_country_code: beneficiaryCountryCode || '+91',
+        beneficiary_phone: beneficiaryPhone,
+      },
+    },
+  };
+
+  try {
+    const response = await axios.request(options);
+    res.status(200).json({
+      message: 'Bank Account added successfully',
+      beneficiaryId: beneficiaryId,
+      data: response.data,
+    });
+  } catch (error) {
+    console.error('Error adding beneficiary:', error.response?.data || error.message);
+    res.status(500).json({
+      message: 'Error adding bank account',
+      error: error.response?.data || error.message,
+    });
+  }
 });
+
 module.exports = userRouter;
