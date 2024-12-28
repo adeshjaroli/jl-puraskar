@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Beneficiary</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 300px;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #004aad;
+      font-size: 1.3em;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      color: #555555;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #666666;
+      width: 100%;
+      text-align: left;
+    }
+
+    input[type="text"],
+    input[type="hidden"] {
+      width: 95%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #cccccc;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+
+    input:focus {
+      border-color: #007bff;
+      outline: none;
+      box-shadow: 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    button {
+      width: 60%;
+      padding: 12px;
+      background-color: #007bff;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      margin-top: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #responseMessage {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.95rem;
+      color: #9e2f2f;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      h2 {
+        font-size: 1rem;
+      }
+
+      label {
+        font-size: 0.85rem;
+      }
+
+      button {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Enter Bank Details</h1>
+    <form id="addBeneficiaryForm">
+      
+      <label for="beneficiaryName">Account Holder Name:</label>
+      <input type="text" id="beneficiaryName" name="beneficiaryName" required>
+
+      
+      <label for="bankAccountNumber">Bank Account Number:</label>
+      <input type="text" id="bankAccountNumber" name="bankAccountNumber" required>
+      
+      <label for="bankIFSC">Bank IFSC Code:</label>
+      <input type="text" id="bankIFSC" name="bankIFSC" required>
+      
+      <label for="vpa">UPI ID (Optional):</label>
+      <input type="text" id="vpa" name="vpa">
+
+      <label for="beneficiaryPhone">Phone Number:</label>
+      <input type="text" id="beneficiaryPhone" name="beneficiaryPhone" value= "<%=mobileNumber%>" readonly required />
+      
+      <input type="hidden" id="beneficiaryCountryCode" name="beneficiaryCountryCode" value="+91">
+
+      <button type="submit">Add Bank Details</button>
+    </form>
+    <div id="responseMessage"></div>
+  </div>
+  <script>
+    const form = document.getElementById('addBeneficiaryForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const beneficiaryName = document.getElementById('beneficiaryName').value;
+      const bankAccountNumber = document.getElementById('bankAccountNumber').value;
+      const bankIFSC = document.getElementById('bankIFSC').value;
+      const vpa = document.getElementById('vpa').value;
+      const beneficiaryPhone = document.getElementById('beneficiaryPhone').value;
+      const beneficiaryCountryCode = document.getElementById('beneficiaryCountryCode').value;
+
+      const beneficiaryDetails = {
+        beneficiaryName,
+        bankAccountNumber,
+        bankIFSC,
+        vpa,
+        beneficiaryPhone,
+        beneficiaryCountryCode,
+      };
+
+      try {
+        const response = await fetch('/user/add-beneficiary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(beneficiaryDetails),
+        });
+
+        const result = await response.json();
+        document.getElementById('responseMessage').innerText = 
+          result.message + `\nBeneficiary ID: ${result.beneficiaryId}`;
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('responseMessage').innerText = 'Error adding beneficiary';
+      }
+    });
+  </script>
+</body>
+</html>
