@@ -1,123 +1,196 @@
-// Function to fetch beneficiary details from Cashfree
-async function fetchStatusFromCashfree(beneficiary_id) {
-  try {
-    // Fetch beneficiary details from Cashfree
-    const options = {
-      method: 'GET',
-      url: `https://sandbox.cashfree.com/payout/beneficiary`,
-      headers: {
-        accept: 'application/json',
-        'x-api-version': '2024-01-01',
-        'x-client-id': CLIENT_ID,
-        'x-client-secret': CLIENT_SECRET,
-      },
-      params: {
-        beneficiary_id: beneficiary_id, // Pass the beneficiary_id here
-      },
-    };
-
-    const response = await axios.request(options);
-    console.log('Beneficiary API Response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching beneficiary details:', error.response?.data || error.message || 'Unknown error');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Bank Details</title>
+<style>
+/* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      min-height: 100%;
+    }
     
-    // If beneficiary not found, return null so we can handle it in the route
-    if (error.response?.data?.code === 'beneficiary_not_found') {
-      return null;
+    .container {
+      max-width: 300px; /* Maximum width of the container */
+      width: 100%;
+      padding: 15px;
+      box-sizing: border-box;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
-
-    // Throw error if any other issue occurs
-    throw new Error('Failed to fetch beneficiary details.');
-  }
-}
-
-// Render the Edit Details page
-userRouter.get('/edit-details', isAuthenticated, async (req, res) => {
-  const mobileNumber = req.session.mobileNumber;
-
-  if (!mobileNumber) {
-    console.error('Mobile number not found in session.');
-    return res.status(400).render('error', { message: 'Mobile number not found in session.' });
-  }
-
-  const beneficiary_id = `JL${mobileNumber}`;
-  console.log('Fetching beneficiary details for ID:', beneficiary_id);
-
-  try {
-    // Fetch beneficiary details using the helper function
-    const beneficiary = await fetchStatusFromCashfree(beneficiary_id);
-
-    // If beneficiary not found, redirect to add-bank
-    if (!beneficiary) {
-      console.warn(`Beneficiary not found for ID: ${beneficiary_id}`);
-      return res.redirect('/user/add-bank');  // Redirect to add-bank if beneficiary is not found
+    
+    /* Heading Styles */
+    h1 {
+      font-size: 1.1 rem;
+      text-align: center;
+      margin-top: 0;
+      font-weight: bold;
+      color:#0056b3;
     }
-
-    // Check if beneficiary status is VERIFIED
-    if (beneficiary.beneficiary_status !== 'VERIFIED') {
-      console.warn(`Beneficiary not VERIFIED for ID: ${beneficiary_id}`);
-      return res.redirect('/user/add-bank');  // Redirect to add-bank if not verified
+    
+    /* Alert Box */
+    .alert {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      text-align: center;
     }
-
-    // Render the edit-details page with beneficiary information
-    return res.render('edit-details', {
-      beneficiary: beneficiary,
-      message: null,
-    });
-  } catch (error) {
-    console.error('Error rendering edit-details page:', error.message);
-    // Handle error rendering for cases where error view is missing
-    return res.status(500).send('An error occurred while fetching beneficiary details. Please try again later.');
-  }
-});
-
-///////////////////////////////////////////////
-
-// Remove bank account route
-userRouter.post('/edit-details/remove', isAuthenticated, async (req, res) => {
-  const mobileNumber = req.session.mobileNumber;
-
-  if (!mobileNumber) {
-    console.error('Mobile number not found in session.');
-    return res.status(400).render('error', { message: 'Mobile number not found in session.' });
-  }
-
-  const beneficiary_id = `JL${mobileNumber}`;
-  console.log('Removing beneficiary with ID:', beneficiary_id);
-
-  try {
-    // Constructing DELETE request options to remove beneficiary with params
-    const options = {
-      method: 'DELETE',
-      url: 'https://sandbox.cashfree.com/payout/beneficiary',  // URL for deleting beneficiary
-      headers: {
-        accept: 'application/json',
-        'x-api-version': '2024-01-01',
-        'x-client-id': CLIENT_ID,  // Your client ID
-        'x-client-secret': CLIENT_SECRET  // Your client secret
-      },
-      params: {
-        beneficiary_id: beneficiary_id,  // Correctly pass the beneficiary_id as a query parameter
-      },
-    };
-
-    // Send DELETE request to remove beneficiary
-    const response = await axios.request(options);
-    console.log('Delete Beneficiary Response:', response.data);
-
-    // Check if the deletion was successful based on 'beneficiary_status'
-    if (response.data.beneficiary_status === 'DELETED') {
-      console.log('Beneficiary removed successfully');
-      // Redirect to the add-bank page after successful removal
-      return res.redirect('/user/add-bank');
-    } else {
-      console.warn('Failed to remove beneficiary:', response.data);
-      // If removal fails, redirect to add-bank page
-      return res.redirect('/user/add-bank');
+    
+    /* Beneficiary Details Section */
+    .beneficiary-details {
+      padding: 10px;
+      margin-bottom: 15px;
     }
-  } catch (error) {
-    console.error('Error removing beneficiary:', error.response?.data || error.message || 'Unknown error');
-    return res.status(500).send('An error occurred while removing the bank account. Please try again later.');
-  }
-});
+    
+    .beneficiary-details h2 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .beneficiary-details p {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 5px;
+    }
+    
+    .beneficiary-details strong {
+      font-weight: bold;
+    }
+    
+    /* Button Styles */
+    .btn {
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      font-size: 1rem;
+      text-decoration: none;
+      display: inline-block;
+      width: 100%; /* Make button full width */
+      cursor: pointer;
+    }
+    
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      margin-bottom: 10px;
+      margin-top: 20px;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c82333;
+    }
+    
+    .btn-primary {
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+    
+    /* No Beneficiary Section */
+    .no-beneficiary {
+      padding: 10px;
+    }
+    
+    .no-beneficiary h2 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .no-beneficiary p {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    
+    /* Media Queries for Responsiveness */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.3rem;
+      }
+    
+      .container {
+        padding: 20px;
+      }
+    
+      .beneficiary-details, .no-beneficiary {
+        padding: 10px;
+      }
+    
+      .btn {
+        padding: 12px;
+        font-size: 1rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.2rem;
+      }
+    
+      .beneficiary-details p,
+      .no-beneficiary p {
+        font-size: 0.85rem;
+      }
+    
+      .alert {
+        font-size: 0.85rem;
+      }
+    }
+    
+</style>
+</head>
+<body>
+  
+
+    <div class="container">
+        <h1>Edit Bank Details</h1>
+    
+        <% if (message) { %>
+            <div class="alert alert-warning">
+                <%= message %>
+            </div>
+        <% } %>
+    
+        <% if (beneficiary) { %>
+            <div class="beneficiary-details">
+             
+                <p><strong>Beneficiary ID:</strong> <%= beneficiary.beneficiary_id %></p>
+                <p><strong>Beneficiary Name:</strong> <%= beneficiary.beneficiary_name %></p>
+                <p><strong>Bank Account Number:</strong> <%= beneficiary.beneficiary_instrument_details.bank_account_number %></p>
+                <p><strong>Bank IFSC:</strong> <%= beneficiary.beneficiary_instrument_details.bank_ifsc %></p>
+    
+                <form action="/user/edit-details/remove" method="POST">
+                    <button type="submit" class="btn btn-danger">Remove Bank Account</button>
+                </form>
+            </div>
+        <% } else { %>
+            <div class="no-beneficiary">
+                <h2>No Beneficiary Details Found</h2>
+                <p>We could not find your bank details. Please add a bank account.</p>
+                <a href="/user/add-bank" class="btn btn-primary">Add Bank Account</a>
+            </div>
+        <% } %>
+    </div>
+    
+</body>
+</html>
+
