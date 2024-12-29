@@ -1,0 +1,123 @@
+// Function to fetch beneficiary details from Cashfree
+async function fetchStatusFromCashfree(beneficiary_id) {
+  try {
+    // Fetch beneficiary details from Cashfree
+    const options = {
+      method: 'GET',
+      url: `https://sandbox.cashfree.com/payout/beneficiary`,
+      headers: {
+        accept: 'application/json',
+        'x-api-version': '2024-01-01',
+        'x-client-id': CLIENT_ID,
+        'x-client-secret': CLIENT_SECRET,
+      },
+      params: {
+        beneficiary_id: beneficiary_id, // Pass the beneficiary_id here
+      },
+    };
+
+    const response = await axios.request(options);
+    console.log('Beneficiary API Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching beneficiary details:', error.response?.data || error.message || 'Unknown error');
+    
+    // If beneficiary not found, return null so we can handle it in the route
+    if (error.response?.data?.code === 'beneficiary_not_found') {
+      return null;
+    }
+
+    // Throw error if any other issue occurs
+    throw new Error('Failed to fetch beneficiary details.');
+  }
+}
+
+// Render the Edit Details page
+userRouter.get('/edit-details', isAuthenticated, async (req, res) => {
+  const mobileNumber = req.session.mobileNumber;
+
+  if (!mobileNumber) {
+    console.error('Mobile number not found in session.');
+    return res.status(400).render('error', { message: 'Mobile number not found in session.' });
+  }
+
+  const beneficiary_id = `JL${mobileNumber}`;
+  console.log('Fetching beneficiary details for ID:', beneficiary_id);
+
+  try {
+    // Fetch beneficiary details using the helper function
+    const beneficiary = await fetchStatusFromCashfree(beneficiary_id);
+
+    // If beneficiary not found, redirect to add-bank
+    if (!beneficiary) {
+      console.warn(`Beneficiary not found for ID: ${beneficiary_id}`);
+      return res.redirect('/user/add-bank');  // Redirect to add-bank if beneficiary is not found
+    }
+
+    // Check if beneficiary status is VERIFIED
+    if (beneficiary.beneficiary_status !== 'VERIFIED') {
+      console.warn(`Beneficiary not VERIFIED for ID: ${beneficiary_id}`);
+      return res.redirect('/user/add-bank');  // Redirect to add-bank if not verified
+    }
+
+    // Render the edit-details page with beneficiary information
+    return res.render('edit-details', {
+      beneficiary: beneficiary,
+      message: null,
+    });
+  } catch (error) {
+    console.error('Error rendering edit-details page:', error.message);
+    // Handle error rendering for cases where error view is missing
+    return res.status(500).send('An error occurred while fetching beneficiary details. Please try again later.');
+  }
+});
+
+///////////////////////////////////////////////
+
+// Remove bank account route
+userRouter.post('/edit-details/remove', isAuthenticated, async (req, res) => {
+  const mobileNumber = req.session.mobileNumber;
+
+  if (!mobileNumber) {
+    console.error('Mobile number not found in session.');
+    return res.status(400).render('error', { message: 'Mobile number not found in session.' });
+  }
+
+  const beneficiary_id = `JL${mobileNumber}`;
+  console.log('Removing beneficiary with ID:', beneficiary_id);
+
+  try {
+    // Constructing DELETE request options to remove beneficiary with params
+    const options = {
+      method: 'DELETE',
+      url: 'https://sandbox.cashfree.com/payout/beneficiary',  // URL for deleting beneficiary
+      headers: {
+        accept: 'application/json',
+        'x-api-version': '2024-01-01',
+        'x-client-id': CLIENT_ID,  // Your client ID
+        'x-client-secret': CLIENT_SECRET  // Your client secret
+      },
+      params: {
+        beneficiary_id: beneficiary_id,  // Correctly pass the beneficiary_id as a query parameter
+      },
+    };
+
+    // Send DELETE request to remove beneficiary
+    const response = await axios.request(options);
+    console.log('Delete Beneficiary Response:', response.data);
+
+    // Check if the deletion was successful based on 'beneficiary_status'
+    if (response.data.beneficiary_status === 'DELETED') {
+      console.log('Beneficiary removed successfully');
+      // Redirect to the add-bank page after successful removal
+      return res.redirect('/user/add-bank');
+    } else {
+      console.warn('Failed to remove beneficiary:', response.data);
+      // If removal fails, redirect to add-bank page
+      return res.redirect('/user/add-bank');
+    }
+  } catch (error) {
+    console.error('Error removing beneficiary:', error.response?.data || error.message || 'Unknown error');
+    return res.status(500).send('An error occurred while removing the bank account. Please try again later.');
+  }
+});
