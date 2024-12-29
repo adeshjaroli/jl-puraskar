@@ -663,6 +663,78 @@ userRouter.post("/withdraw", isAuthenticated, async (req, res) => {
   }
 });
 
+// Function to fetch status from Cashfree using the correct GET endpoint
+async function fetchStatusFromCashfree(transferId) {
+  try {
+      // Send GET request to Cashfree's payout API to get transfer status
+      const response = await axios.get(
+          `https://sandbox.cashfree.com/payout/transfers`,
+          {
+              headers: {
+                  'X-Client-Id': CLIENT_ID,
+                  'X-Client-Secret': CLIENT_SECRET,
+                  'x-api-version': '2024-01-01'
+              },
+              params: {
+                  transfer_id: transferId // Pass transfer_id as a query parameter
+              }
+          }
+      );
+
+      // Now, we need to check the response structure correctly
+      if (response.data && response.data.status) {
+          const status = response.data.status || 'Unknown'; // Accessing status directly
+          return status; // Return the status
+      } else {
+          return 'Unknown'; // Return 'Unknown' if no status field is found
+      }
+  } catch (error) {
+      return 'Error'; // Return 'Error' if there was an issue
+  }
+}
+
+
+// GET /user-withdraw
+userRouter.get('/user-withdraw', async (req, res) => {
+  const mobileNumber = req.session.mobileNumber;
+
+  try {
+      // Fetch user data from Firebase Realtime Database
+      const withdrawRef = ref(db, `withdrawals/${mobileNumber}`);
+      const snapshot = await get(withdrawRef);
+      const withdrawals = [];
+
+      if (snapshot.exists()) {
+          const data = snapshot.val();
+
+          for (const key in data) {
+              const { transfer_id, transfer_amount, created_at } = data[key];
+
+              // Fetch transfer status from Cashfree
+              const status = await fetchStatusFromCashfree(transfer_id);
+
+              withdrawals.push({
+                  transfer_id,
+                  transfer_amount,
+                  created_at,
+                  status,
+              });
+          }
+      }
+
+
+          // Sort the withdrawals array by created_at in descending order
+          withdrawals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+
+      // Send the withdrawals array to the EJS template
+      res.render('user-withdraw', { withdrawals });
+  } catch (error) {
+      res.status(500).send('Internal Server Error');
+  }
+});
+
+
 module.exports = userRouter;
 
 
