@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Withdrawal Requests</title>
+  <style>/* General page styling */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    h1 {
+      color: #004aad;
+      font-size: 2em;
+      margin-top: 20px;
+    }
+    
+    /* Admin Table Container */
+    .table-container {
+      width: 90%;
+      max-width: 1200px;
+      margin-top: 20px;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    .table-container th, .table-container td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .table-container th {
+      background-color: #004aad;
+      color: white;
+      font-size: 1.1em;
+    }
+    
+    .table-container td {
+      font-size: 1em;
+    }
+    
+    .status {
+      font-weight: bold;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    
+    /* Status colors */
+    .status-success {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .status-failed {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .status-pending {
+      background-color: #a3a3a3;
+      color: white;
+    }
+    
+    /* Responsive styling */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.5em;
+      }
+    
+      .table-container {
+        width: 95%;
+        padding: 15px;
+      }
+    
+      .table-container th, .table-container td {
+        font-size: 0.9em;
+        padding: 10px;
+      }
+    }
+    </style>
+</head>
+<body>
+  <h1>All Withdrawal Requests</h1>
+
+  <div class="table-container">
+    <% if (withdrawals && withdrawals.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Transfer ID</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% withdrawals.forEach(function(withdrawal) { %>
+            <tr>
+              <td><%= withdrawal.transfer_id %></td>
+              <td><%= withdrawal.transfer_amount %></td>
+              <td><%= new Date(withdrawal.created_at).toLocaleString() %></td>
+              <td>
+                <span class="status <%= withdrawal.status === 'SUCCESS' ? 'status-success' : (withdrawal.status === 'FAILED' ? 'status-failed' : 'status-pending') %>">
+                  <%= withdrawal.status %>
+                </span>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <p>No withdrawal requests found.</p>
+    <% } %>
+  </div>
+
+</body>
+</html>
