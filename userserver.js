@@ -4,6 +4,7 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const { initializeApp } = require('firebase/app');
 const { getDatabase, ref, set, get, update } = require('firebase/database');
+
 const axios = require('axios');
 
 // Initialize Firebase
@@ -491,4 +492,167 @@ userRouter.post('/add-beneficiary', async (req, res) => {
   }
 });
 
+// Render the withdraw page
+userRouter.get('/withdraw', isAuthenticated, async (req, res) => {
+    const mobileNumber = req.session.mobileNumber;
+
+    if (!mobileNumber) {
+      return res.status(400).render("withdraw", {
+        walletBalance: 0,
+        message: "Mobile number not found in session.",
+        beneficiary_id: null,
+      });
+    }
+
+    try {
+      // Fetch user data from Firebase Realtime Database
+      const userRef = ref(db, `users/${mobileNumber}`);
+      const snapshot = await get(userRef);
+
+      if (!snapshot.exists()) {
+        return res.status(404).render("withdraw", {
+          walletBalance: 0,
+          message: "User not found.",
+          beneficiary_id: null,
+        });
+      }
+
+      const user = snapshot.val();
+      const walletBalance = user.walletBalance || 0; // Fetch wallet balance
+      const beneficiary_id = `JL${mobileNumber}`;
+
+      return res.render("withdraw", {
+        walletBalance,
+        message: null, // No message on initial load
+        beneficiary_id,
+      });
+    } catch (error) {
+      console.error("Error fetching user data from Firebase:", error);
+      return res.status(500).render("withdraw", {
+        walletBalance: 0,
+        message: "Failed to fetch wallet balance.",
+        beneficiary_id: null,
+      });
+    }
+});
+
+// Handle withdraw form submission
+userRouter.post('/withdraw', isAuthenticated, async (req, res) => {
+  const mobileNumber = req.session.mobileNumber;
+  const { withdrawAmount } = req.body;
+
+  if (!mobileNumber) {
+    return res.status(400).render("withdraw", {
+      walletBalance: 0,
+      message: "Mobile number not found in session.",
+      beneficiary_id: null,
+    });
+  }
+
+  try {
+    // Fetch user data from Firebase Realtime Database
+    const userRef = ref(db, `users/${mobileNumber}`);
+    const snapshot = await get(userRef);
+
+    if (!snapshot.exists()) {
+      return res.status(404).render("withdraw", {
+        walletBalance: 0,
+        message: "User not found.",
+        beneficiary_id: `JL${mobileNumber}`,
+      });
+    }
+
+    const user = snapshot.val();
+    const walletBalance = user.walletBalance || 0; // Fetch wallet balance
+
+    if (!withdrawAmount || withdrawAmount < 50) {
+      return res.render("withdraw", {
+        walletBalance,
+        message: "Minimum withdrawal amount is 50.",
+        beneficiary_id: `JL${mobileNumber}`,
+      });
+    }
+
+    if (withdrawAmount > walletBalance) {
+      return res.render("withdraw", {
+        walletBalance,
+        message: "Insufficient balance to withdraw.",
+        beneficiary_id: `JL${mobileNumber}`,
+      });
+    }
+
+    const transfer_id = `JL${mobileNumber}${Math.floor(1000 + Math.random() * 9000)}`;
+    const beneficiary_id = `JL${mobileNumber}`;
+
+    const cashfreePayload = {
+      transfer_id,
+      transfer_amount: withdrawAmount,
+      beneficiary_details: {
+        beneficiary_id,
+        name: "User Name", // Replace with actual user data
+        email: `${mobileNumber}@example.com`, // Replace with actual user email
+        phone: mobileNumber,
+        bankAccount: "123456789", // Replace with actual beneficiary details
+        ifsc: "IFSC0001234", // Replace with actual IFSC code
+      },
+    };
+
+    // Initiate the withdrawal process via Cashfree API
+    const response = await axios.post(
+      "https://sandbox.cashfree.com/payout/transfers",
+      cashfreePayload,
+      {
+        headers: {
+          accept: "application/json",
+          "x-api-version": "2024-01-01",
+          "content-type": "application/json",
+          "x-client-id": CLIENT_ID,
+          "x-client-secret": CLIENT_SECRET,
+        },
+      }
+    );
+
+     // Check the response structure
+     const responseData = response.data;  // Assuming response.data contains the relevant info
+     const status = responseData.status;  // Ensure we are accessing the correct status
+ 
+     // Check if status is one of the successful statuses
+     if (["RECEIVED", "APPROVAL_PENDING", "PENDING", "SUCCESS"].includes(status)) {
+       // Update wallet balance in Firebase if transfer was successful
+       await update(ref(db, `users/${mobileNumber}`), {
+         walletBalance: walletBalance - withdrawAmount, // Update balance
+       });
+ 
+       return res.render("withdraw", {
+         walletBalance: walletBalance - withdrawAmount,
+         message: "Withdrawal successful!",
+         beneficiary_id,
+       });
+     } else if (status === "FAILED", "REJECTED") {
+       // If the status is FAILED, show a failure message
+       return res.render("withdraw", {
+         walletBalance,
+         message: "Withdrawal failed. Please try again later.",
+         beneficiary_id,
+       });
+     } else {
+       // If the status is any other value, log it for debugging and show a generic message
+       console.error(`Unexpected status: ${status}`);
+       return res.render("withdraw", {
+         walletBalance,
+         message: "An unexpected error occurred. Please try again.",
+         beneficiary_id,
+       });
+     }
+   } catch (error) {
+     console.error("Error during withdrawal:", error.message);
+ 
+     return res.status(500).render("withdraw", {
+       walletBalance: 0,
+       message: "An error occurred while processing your withdrawal. Please try again later.",
+       beneficiary_id: null,
+     });
+   }
+ });
 module.exports = userRouter;
+
