@@ -1,0 +1,174 @@
+/* General Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #f4f7f6;
+    color: #333;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+h1 {
+    text-align: center;
+    color: #007bff; /* Blue color for heading */
+    font-size: 2rem;
+    margin-bottom: 20px;
+}
+
+/* Withdrawals List */
+.withdrawals-list {
+    margin-top: 20px;
+}
+
+.withdrawal-item {
+    background-color: #fff;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    transition: all 0.3s ease-in-out;
+    border-left: 5px solid #007bff; /* Blue border on left */
+}
+
+.withdrawal-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    border-left: 5px solid #0056b3; /* Darker blue on hover */
+}
+
+/* Withdrawal Details */
+.withdrawal-details {
+    width: 70%;
+}
+
+.detail-row {
+    display: flex;
+    margin: 10px 0;
+}
+
+.detail-label {
+    width: 30%;
+    font-weight: bold;
+    color: #000000; /* Black color for labels */
+}
+
+.detail-value {
+    width: 70%;
+    color: #666;
+}
+
+/* Status Box */
+.status-box {
+    padding: 12px 20px;
+    border-radius: 20px;
+    text-align: center;
+    font-weight: bold;
+    width: auto;
+    min-width: 100px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s ease-in-out;
+    font-size: 1rem;
+    margin-top: 15px;
+}
+
+.status-box.inprocess {
+    background-color: #ccc;
+    color: #fff;
+}
+
+.status-box.rejected,
+.status-box.reversed {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+.status-box.success {
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+.status-box.pending {
+    background-color: #ccc;
+    color: #fff;
+}
+
+/* Hover Effects */
+.status-box:hover {
+    opacity: 0.9;
+    background-color: #007bff; /* Blue background on hover */
+    color: #fff;
+}
+
+.withdrawal-item:hover .status-box {
+    transform: scale(1.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .withdrawal-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .withdrawal-details {
+        width: 100%;
+    }
+
+    .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .detail-label {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .detail-value {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .status-box {
+        width: 100%;
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    .withdrawal-item {
+        padding: 10px;
+    }
+
+    .status-box {
+        font-size: 0.9rem;
+        padding: 8px 15px;
+    }
+}
