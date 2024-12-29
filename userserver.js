@@ -3,7 +3,7 @@ const path = require('path');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const { initializeApp } = require('firebase/app');
-const { getDatabase, ref, set, get, update } = require('firebase/database');
+const { getDatabase, ref, set, get, update, push } = require('firebase/database');
 
 const axios = require('axios');
 
@@ -493,51 +493,51 @@ userRouter.post('/add-beneficiary', async (req, res) => {
 });
 
 // Render the withdraw page
-userRouter.get('/withdraw', isAuthenticated, async (req, res) => {
-    const mobileNumber = req.session.mobileNumber;
+userRouter.get("/withdraw", isAuthenticated, async (req, res) => {
+  const mobileNumber = req.session.mobileNumber;
 
-    if (!mobileNumber) {
-      return res.status(400).render("withdraw", {
+  if (!mobileNumber) {
+    return res.status(400).render("withdraw", {
+      walletBalance: 0,
+      message: "Mobile number not found in session.",
+      beneficiary_id: null,
+    });
+  }
+
+  try {
+    // Fetch user data from Firebase Realtime Database
+    const userRef = ref(db, `users/${mobileNumber}`);
+    const snapshot = await get(userRef);
+
+    if (!snapshot.exists()) {
+      return res.status(404).render("withdraw", {
         walletBalance: 0,
-        message: "Mobile number not found in session.",
+        message: "User not found.",
         beneficiary_id: null,
       });
     }
 
-    try {
-      // Fetch user data from Firebase Realtime Database
-      const userRef = ref(db, `users/${mobileNumber}`);
-      const snapshot = await get(userRef);
+    const user = snapshot.val();
+    const walletBalance = user.walletBalance || 0; // Fetch wallet balance
+    const beneficiary_id = `JL${mobileNumber}`;
 
-      if (!snapshot.exists()) {
-        return res.status(404).render("withdraw", {
-          walletBalance: 0,
-          message: "User not found.",
-          beneficiary_id: null,
-        });
-      }
-
-      const user = snapshot.val();
-      const walletBalance = user.walletBalance || 0; // Fetch wallet balance
-      const beneficiary_id = `JL${mobileNumber}`;
-
-      return res.render("withdraw", {
-        walletBalance,
-        message: null, // No message on initial load
-        beneficiary_id,
-      });
-    } catch (error) {
-      console.error("Error fetching user data from Firebase:", error);
-      return res.status(500).render("withdraw", {
-        walletBalance: 0,
-        message: "Failed to fetch wallet balance.",
-        beneficiary_id: null,
-      });
-    }
+    return res.render("withdraw", {
+      walletBalance,
+      message: null, // No message on initial load
+      beneficiary_id,
+    });
+  } catch (error) {
+    console.error("Error fetching user data from Firebase:", error);
+    return res.status(500).render("withdraw", {
+      walletBalance: 0,
+      message: "Failed to fetch wallet balance.",
+      beneficiary_id: null,
+    });
+  }
 });
 
 // Handle withdraw form submission
-userRouter.post('/withdraw', isAuthenticated, async (req, res) => {
+userRouter.post("/withdraw", isAuthenticated, async (req, res) => {
   const mobileNumber = req.session.mobileNumber;
   const { withdrawAmount } = req.body;
 
@@ -612,47 +612,57 @@ userRouter.post('/withdraw', isAuthenticated, async (req, res) => {
       }
     );
 
-     // Check the response structure
-     const responseData = response.data;  // Assuming response.data contains the relevant info
-     const status = responseData.status;  // Ensure we are accessing the correct status
- 
-     // Check if status is one of the successful statuses
-     if (["RECEIVED", "APPROVAL_PENDING", "PENDING", "SUCCESS"].includes(status)) {
-       // Update wallet balance in Firebase if transfer was successful
-       await update(ref(db, `users/${mobileNumber}`), {
-         walletBalance: walletBalance - withdrawAmount, // Update balance
-       });
- 
-       return res.render("withdraw", {
-         walletBalance: walletBalance - withdrawAmount,
-         message: "Withdrawal successful!",
-         beneficiary_id,
-       });
-     } else if (status === "FAILED", "REJECTED") {
-       // If the status is FAILED, show a failure message
-       return res.render("withdraw", {
-         walletBalance,
-         message: "Withdrawal failed. Please try again later.",
-         beneficiary_id,
-       });
-     } else {
-       // If the status is any other value, log it for debugging and show a generic message
-       console.error(`Unexpected status: ${status}`);
-       return res.render("withdraw", {
-         walletBalance,
-         message: "An unexpected error occurred. Please try again.",
-         beneficiary_id,
-       });
-     }
-   } catch (error) {
-     console.error("Error during withdrawal:", error.message);
- 
-     return res.status(500).render("withdraw", {
-       walletBalance: 0,
-       message: "An error occurred while processing your withdrawal. Please try again later.",
-       beneficiary_id: null,
-     });
-   }
- });
+    const status = response.data.status;
+
+    if (["RECEIVED", "APPROVAL_PENDING", "PENDING", "SUCCESS"].includes(status)) {
+      // Deduct wallet balance and log withdrawal request in Firebase
+      const newWalletBalance = walletBalance - withdrawAmount;
+
+      await update(ref(db, `users/${mobileNumber}`), {
+        walletBalance: newWalletBalance, // Update wallet balance
+      });
+
+      // Log the withdrawal request in the `withdrawals` node
+      const withdrawalsRef = ref(db, `withdrawals/${mobileNumber}`);
+      const newWithdrawalRef = push(withdrawalsRef);
+
+      await set(newWithdrawalRef, {
+        transfer_id,
+        transfer_amount: withdrawAmount,
+        status,
+        created_at: new Date().toISOString(),
+      });
+
+      return res.render("withdraw", {
+        walletBalance: newWalletBalance,
+        message: "Withdrawal successful!",
+        beneficiary_id,
+      });
+    } else if (["FAILED", "REJECTED"].includes(status)) {
+      return res.render("withdraw", {
+        walletBalance,
+        message: "Withdrawal failed. Please try again later.",
+        beneficiary_id,
+      });
+    } else {
+      console.error(`Unexpected status: ${status}`);
+      return res.render("withdraw", {
+        walletBalance,
+        message: "An unexpected error occurred. Please try again.",
+        beneficiary_id,
+      });
+    }
+  } catch (error) {
+    console.error("Error during withdrawal:", error.message);
+
+    return res.status(500).render("withdraw", {
+      walletBalance: 0,
+      message: "An error occurred while processing your withdrawal. Please try again later.",
+      beneficiary_id: null,
+    });
+  }
+});
+
 module.exports = userRouter;
+
 
