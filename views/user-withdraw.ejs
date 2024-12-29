@@ -23,7 +23,14 @@
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Date & Time:</span>
-                            <span class="detail-value"><%= new Date(withdrawal.created_at).toLocaleString() %></span>
+                            <% 
+                                // Convert UTC to IST by adding 5 hours and 30 minutes
+                                const utcDate = new Date(withdrawal.created_at);
+                                const istOffset = 5.5 * 60; // IST offset in minutes (5 hours 30 minutes)
+                                const istTime = new Date(utcDate.getTime() + (istOffset * 60 * 1000)); // Add offset to UTC time
+                                const formattedIST = istTime.toLocaleString(); // Format the IST time
+                            %>
+                            <span class="detail-value"><%= formattedIST %></span>
                         </div>
                     </div>
                     <div class="status-box <%= withdrawal.status.toLowerCase() %>">
@@ -35,3 +42,4 @@
     </div>
 </body>
 </html>
+
