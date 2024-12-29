@@ -820,13 +820,10 @@ const CLIENT_SECRET = 'cfsk_ma_test_0a290e0b7f1a3fae1b989d161af85646_948f4605';
 // Function to fetch transfer status from Cashfree using the correct GET endpoint
 async function fetchStatusFromCashfree(transferId) {
   if (!transferId) {
-    console.warn('No transfer_id provided.');
     return 'Error'; // Return 'Error' if no transfer_id is provided
   }
 
   try {
-    console.log(`Fetching status for transfer_id: ${transferId}`);
-
     // Send GET request to Cashfree's payout API to get transfer status
     const response = await axios.get(
       `https://sandbox.cashfree.com/payout/transfers`,
@@ -845,22 +842,17 @@ async function fetchStatusFromCashfree(transferId) {
     // Check the response structure
     if (response.data && response.data.status) {
       const status = response.data.status || 'Unknown'; // Accessing status directly
-      console.log(`Status for transfer_id ${transferId}: ${status}`);
       return status; // Return the status
     } else {
-      console.warn(`No status found for transfer_id: ${transferId}`);
       return 'Unknown'; // Return 'Unknown' if no status field is found
     }
   } catch (error) {
-    console.error(`Error fetching status for transfer_id ${transferId}:`, error.message || error.response?.data || error);
     return 'Error'; // Return 'Error' if there was an issue
   }
 }
 
 // GET /admin-withdraw (Admin panel route to fetch all withdrawal requests)
 adminRouter.get('/admin-withdraw', async (req, res) => {
-  console.log('Admin request to view all withdrawal requests.');
-
   try {
     // Fetch all withdrawal data across all mobile numbers (no mobile number filter)
     const withdrawRef = ref(db, `withdrawals`); // Fetching all withdrawals without mobile filter
@@ -869,30 +861,21 @@ adminRouter.get('/admin-withdraw', async (req, res) => {
 
     if (snapshot.exists()) {
       const data = snapshot.val();
-      console.log('Fetched withdrawals data from Firebase.');
 
       // Loop through all mobile number nodes under withdrawals and fetch the status for each transfer
       for (const mobileNumber in data) {
-        console.log(`Processing withdrawals for mobile number: ${mobileNumber}`);
-
         const mobileWithdrawals = data[mobileNumber]; // Get the withdrawal data for each mobile number
         
         // Loop through each withdrawal for the mobile number
         for (const key in mobileWithdrawals) {
           const withdrawal = mobileWithdrawals[key];
 
-          // Log the structure of each withdrawal to inspect the data
-          console.log(`Withdrawal data for ${key}:`, withdrawal);
-
           const { transfer_id, transfer_amount, created_at } = withdrawal;
 
           // Check if transfer_id is defined
           if (!transfer_id) {
-            console.warn(`Skipping withdrawal with missing transfer_id for mobile number: ${mobileNumber}`);
             continue; // Skip this withdrawal if transfer_id is missing
           }
-
-          console.log(`Processing withdrawal with transfer_id: ${transfer_id}`);
 
           // Fetch transfer status from Cashfree
           const status = await fetchStatusFromCashfree(transfer_id);
@@ -906,24 +889,22 @@ adminRouter.get('/admin-withdraw', async (req, res) => {
           });
         }
       }
-    } else {
-      console.log('No withdrawals data found in Firebase.');
     }
 
     // Sort the withdrawals array by created_at in descending order
     withdrawals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    console.log(`Sorted withdrawals: ${withdrawals.length} entries found.`);
 
     // Send the withdrawals array to the EJS template for the admin view
     res.render('admin-withdraw', { withdrawals });
   } catch (error) {
-    console.error('Error fetching withdrawals for admin:', error.message || error);
     res.status(500).send('Internal Server Error');
   }
 });
 
   // Export the adminRouter to be used in server.js
 module.exports = adminRouter;
+
+
 
 
 
