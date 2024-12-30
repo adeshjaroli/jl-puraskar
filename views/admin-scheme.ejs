@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Schemes</title>
+   <style>body {
+    font-family: Arial, sans-serif;
+}
+
+.admin-container {
+    width: 80%;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+}
+
+textarea {
+    width: 100%;
+    height: 100px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.notifications-list {
+    margin-top: 30px;
+}
+
+.notification-item {
+    background-color: #f9f9f9;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+}
+
+.delete-btn {
+    color: red;
+    text-decoration: none;
+    margin-left: 20px;
+}
+
+.delete-btn:hover {
+    text-decoration: underline;
+}
+</style>
+</head>
+<body>
+    <div class="admin-container">
+        <h1>Admin - Schemes</h1>
+        
+        <!-- Add Scheme Section -->
+        <form action="/admin/post-scheme" method="POST">
+            <textarea name="text" placeholder="Enter your scheme" required></textarea>
+            <button type="submit">Post Scheme</button>
+        </form>
+        
+        <!-- List of existing schemes -->
+        <div class="notifications-list" id="notifications-list">
+            <% if (notifications && notifications.length > 0) { %>
+                <% notifications.forEach(function(notification) { %>
+                    <div class="notification-item">
+                        <span><%= notification.text %></span>
+                        <!-- Delete button with a data-id attribute -->
+                        <button class="delete-btn" data-id="<%= notification.id %>">Delete</button>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <p>No notifications available.</p>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        // Add event listener for the delete button
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const notificationId = this.getAttribute('data-id');
+                // Send a DELETE request to the server
+                fetch(`/admin/delete-scheme/${notificationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the notification item from the DOM
+                        this.closest('.notification-item').remove();
+                    } else {
+                        alert('Failed to delete the notification');
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting the notification');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
