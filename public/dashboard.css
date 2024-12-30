@@ -157,6 +157,8 @@ body {
 /* Style for Withdraw Button */
 .withdraw-btn {
     background-color: #28a745; /* Green color for Withdraw */
+    text-decoration: none;
+    color: #ffffff;
 }
 
 /* Hover effect for Withdraw button */
@@ -271,4 +273,6 @@ body {
         height: 35px;
     }
 }
+
+
 
