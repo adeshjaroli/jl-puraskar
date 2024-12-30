@@ -11,6 +11,7 @@ const axios = require("axios"); // To make HTTP requests to ImageBB
 const multer = require("multer"); // For handling file uploads
 const FormData = require('form-data');
 
+
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyD21Si1wvV6eje9XrwkkFDcos1_HgSo0pY",
@@ -32,6 +33,7 @@ const db = getDatabase(app);
 
 // Log a success message to confirm the connection
 console.log("Firebase connected successfully!");
+
 
 const adminRouter = express.Router();
 
@@ -321,7 +323,6 @@ adminRouter.get("/view-qr-image/:qrCode", (req, res) => {
 // Download batch QR codes as a ZIP file
 adminRouter.get("/download-batch/:batchId", async (req, res) => {
     const batchId = req.params.batchId;
-    console.log(`Fetching batch with ID: ${batchId}`);
 
     const batchRef = ref(db, `batches/${batchId}`);
 
@@ -329,11 +330,7 @@ adminRouter.get("/download-batch/:batchId", async (req, res) => {
         // Fetch batch data from Firebase
         const snapshot = await get(batchRef);
 
-        // Log the response from Firebase to check what is returned
-        console.log("Batch data fetched from Firebase:", snapshot.val());
-
         if (!snapshot.exists()) {
-            console.error(`Batch with ID ${batchId} not found in Firebase.`);
             return res.status(404).send("Batch not found.");
         }
 
@@ -357,7 +354,7 @@ adminRouter.get("/download-batch/:batchId", async (req, res) => {
             // Send the ZIP file as a download
             res.download(zipFilePath, `${batchId}.zip`, err => {
                 if (err) {
-                    console.error("Error sending file:", err);
+                    // Optionally handle the error here
                 } else {
                     // Optionally, delete the ZIP file after download
                     fs.unlinkSync(zipFilePath);
@@ -373,7 +370,6 @@ adminRouter.get("/download-batch/:batchId", async (req, res) => {
             try {
                 // Validate QR code data (ensure it's a string and not empty)
                 if (typeof qrCode.code !== 'string' || qrCode.code.trim() === '') {
-                    console.warn(`Skipping invalid QR code data: ${qrCode.code}`);
                     return; // Skip invalid QR code
                 }
 
@@ -381,9 +377,8 @@ adminRouter.get("/download-batch/:batchId", async (req, res) => {
                 const buffer = await QRCode.toBuffer(qrCode.code);
                 const fileName = `${qrCode.code}.png`; // Use the QR code value as the file name
                 archive.append(buffer, { name: fileName });
-                console.log(`QR code generated for: ${qrCode.code}`);
             } catch (error) {
-                console.error("Error generating QR code:", error);
+                // Optionally handle the error here
             }
         };
 
@@ -396,7 +391,6 @@ adminRouter.get("/download-batch/:batchId", async (req, res) => {
             try {
                 await Promise.all(imagePromises); // Generate and add the QR codes to the archive
             } catch (error) {
-                console.error("Error generating QR codes:", error);
                 return res.status(500).send({ error: "Error generating QR codes." });
             }
         }
@@ -404,10 +398,10 @@ adminRouter.get("/download-batch/:batchId", async (req, res) => {
         // Finalize the ZIP file
         archive.finalize();
     } catch (error) {
-        console.error("Error fetching batch data:", error);
         res.status(500).send("Error fetching batch data.");
     }
 });
+
 
 
 // PUT route to handle batch point update
@@ -901,8 +895,66 @@ adminRouter.get('/admin-withdraw', async (req, res) => {
   }
 });
 
+////////////////////////////////////////////////
+
+// Route to serve the admin-scheme page
+adminRouter.get('/admin-scheme', (req, res) => {
+    const notificationsRef = ref(db, 'notifications');
+    
+    get(notificationsRef)
+        .then((snapshot) => {
+            const notifications = snapshot.val() || {}; // If no notifications exist, use an empty object
+            const notificationArray = [];
+            for (let id in notifications) {
+                notificationArray.push({ id, text: notifications[id].text });
+            }
+            res.render('admin-scheme', { notifications: notificationArray }); // Pass notifications to the view
+        })
+        .catch((error) => {
+            res.status(500).send('Error fetching notifications from Firebase: ' + error);
+        });
+});
+
+// Endpoint to post a new scheme
+adminRouter.post('/post-scheme', (req, res) => {
+    const { text } = req.body;
+    const notificationsRef = ref(db, 'notifications');
+    const newNotificationRef = ref(db, 'notifications/' + Date.now()); // Use timestamp as unique ID
+    
+    set(newNotificationRef, {
+        text,
+        timestamp: Date.now(),
+    })
+    .then(() => {
+        res.json({ success: true });
+    })
+    .catch((error) => {
+        res.status(500).json({ success: false, error: 'Failed to post notification' });
+    });
+});
+
+// Endpoint to delete a scheme by its ID
+adminRouter.delete('/delete-scheme/:id', (req, res) => {
+    const { id } = req.params;
+    const notificationRef = ref(db, 'notifications/' + id);
+    
+    remove(notificationRef)
+        .then(() => {
+            res.json({ success: true });
+        })
+        .catch((error) => {
+            res.status(500).json({ success: false, error: 'Failed to delete notification' });
+        });
+});
+
   // Export the adminRouter to be used in server.js
 module.exports = adminRouter;
+
+
+
+
+
+
 
 
 
