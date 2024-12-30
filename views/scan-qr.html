@@ -16,7 +16,7 @@
 
         .dashboard-container {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             height: 100vh;
             padding: 20px;
@@ -28,7 +28,8 @@
         .content-area {
             display: flex;
             flex-direction: column;
-            width: 500px;
+            width: 100%;
+            max-width: 500px;
             text-align: center;
         }
 
@@ -39,12 +40,13 @@
 
         #qr-reader {
             width: 100%;
-            height: 400px;
+            height: 300px;
             margin-bottom: 10px;
         }
 
         .manual-entry {
             margin-top: 20px;
+            width: 100%;
         }
 
         input[type="text"], button {
@@ -70,110 +72,136 @@
             margin-top: 10px;
             font-size: 16px;
         }
+
+        #toggle-camera {
+            font-size: 30px;
+            cursor: pointer;
+            color: #0066cc;
+            margin-top: 10px;
+        }
+
+        #toggle-camera:hover {
+            color: #005bb5;
+        }
     </style>
 </head>
 <body>
 
 <div class="dashboard-container">
     <div class="content-area">
-        <div>
-            <h2>Scan QR Code</h2>
-            <video id="qr-reader"></video>
-            <p id="camera-status"></p>
-        </div>
+        <h2>Scan QR Code</h2>
+        <video id="qr-reader"></video>
+        <p id="camera-status"></p>
+        <i id="toggle-camera" class="fas fa-camera-rotate"></i>
+    </div>
 
-        <div class="manual-entry">
-            <h2>Enter Code Manually</h2>
-            <input type="text" id="manual-code" placeholder="Enter QR Code">
-            <button id="enter-code-btn">Submit Code</button>
-            <p id="status-message"></p>
-        </div>
+    <div class="manual-entry">
+        <h2>Enter Code Manually</h2>
+        <input type="text" id="manual-code" placeholder="Enter QR Code">
+        <button id="enter-code-btn">Submit Code</button>
+        <p id="status-message"></p>
     </div>
 </div>
 
 <script>
-  // Camera logic (from scan-qr.html)
-let scanner = new Instascan.Scanner({ video: document.getElementById('qr-reader'), mirror: false });
-let cameras = [];
+    // Camera logic
+    let scanner = new Instascan.Scanner({ video: document.getElementById('qr-reader'), mirror: false });
+    let cameras = [];
+    let currentCameraIndex = 0;
 
-function startScanner() {
-    const cameraStatus = document.getElementById("camera-status");
-    Instascan.Camera.getCameras()
-        .then((availableCameras) => {
-            cameras = availableCameras;
-            if (cameras.length > 0) {
-                scanner.start(cameras[0]).then(() => {
-                    cameraStatus.innerText = "Camera is active. Please scan a QR code.";
-                }).catch((error) => {
-                    cameraStatus.innerText = "Unable to start camera.";
-                    console.error(error);
-                });
-            } else {
-                cameraStatus.innerText = "No cameras found.";
-            }
-        })
-        .catch((error) => {
-            cameraStatus.innerText = "Error accessing camera.";
-            console.error(error);
-        });
-}
-
-scanner.addListener('scan', (content) => {
-    const qrCodeField = document.getElementById('manual-code');
-    const statusMessage = document.getElementById('status-message');
-
-    // Set the scanned QR code into the input field
-    qrCodeField.value = content;
-
-    // Display the scanned QR code to the user
-    statusMessage.innerText = "QR Code scanned: " + content;
-    statusMessage.style.color = "blue";
-
-    // Automatically trigger the submit button click
-    document.getElementById('enter-code-btn').click();
-});
-
-window.onload = startScanner;
-
-// Manual or auto-submission logic
-document.getElementById('enter-code-btn').addEventListener('click', async () => {
-    const qrCode = document.getElementById('manual-code').value.trim();
-    const statusMessage = document.getElementById('status-message');
-
-    if (!qrCode) {
-        statusMessage.textContent = 'Please enter a QR code.';
-        statusMessage.style.color = 'red';
-        return;
+    function startScanner() {
+        const cameraStatus = document.getElementById("camera-status");
+        Instascan.Camera.getCameras()
+            .then((availableCameras) => {
+                cameras = availableCameras;
+                if (cameras.length > 0) {
+                    scanner.start(cameras[currentCameraIndex]).then(() => {
+                        cameraStatus.innerText = "Camera is active. Please scan a QR code.";
+                    }).catch((error) => {
+                        cameraStatus.innerText = "Unable to start camera.";
+                        console.error(error);
+                    });
+                } else {
+                    cameraStatus.innerText = "No cameras found.";
+                }
+            })
+            .catch((error) => {
+                cameraStatus.innerText = "Error accessing camera.";
+                console.error(error);
+            });
     }
 
-    try {
-        const response = await fetch('/user/scan-qr', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ qrCode }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            statusMessage.textContent = `${result.message} Points added: ${result.points}`;
-            statusMessage.style.color = 'green';
+    document.getElementById("toggle-camera").addEventListener("click", () => {
+        if (cameras.length > 1) {
+            scanner.stop();
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+            scanner.start(cameras[currentCameraIndex]).then(() => {
+                document.getElementById("camera-status").innerText = `Switched to camera ${currentCameraIndex + 1}.`;
+            }).catch((error) => {
+                console.error("Error switching cameras:", error);
+                document.getElementById("camera-status").innerText = "Unable to switch cameras.";
+            });
         } else {
-            statusMessage.textContent = result.message;
+            document.getElementById("camera-status").innerText = "No additional cameras to toggle.";
+        }
+    });
+
+    scanner.addListener('scan', (content) => {
+        const qrCodeField = document.getElementById('manual-code');
+        const statusMessage = document.getElementById('status-message');
+
+        // Set the scanned QR code into the input field
+        qrCodeField.value = content;
+
+        // Display the scanned QR code to the user
+        statusMessage.innerText = "QR Code scanned: " + content;
+        statusMessage.style.color = "blue";
+
+        // Automatically trigger the submit button click
+        document.getElementById('enter-code-btn').click();
+    });
+
+    window.onload = startScanner;
+
+    // Manual or auto-submission logic
+    document.getElementById('enter-code-btn').addEventListener('click', async () => {
+        const qrCode = document.getElementById('manual-code').value.trim();
+        const statusMessage = document.getElementById('status-message');
+
+        if (!qrCode) {
+            statusMessage.textContent = 'Please enter a QR code.';
+            statusMessage.style.color = 'red';
+            return;
+        }
+
+        try {
+            const response = await fetch('/user/scan-qr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ qrCode }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                statusMessage.textContent = `${result.message} Points added: ${result.points}`;
+                statusMessage.style.color = 'green';
+            } else {
+                statusMessage.textContent = result.message;
+                statusMessage.style.color = 'red';
+            }
+        } catch (error) {
+            console.error('Error scanning QR Code:', error);
+            statusMessage.textContent = 'Error scanning QR Code.';
             statusMessage.style.color = 'red';
         }
-    } catch (error) {
-        console.error('Error scanning QR Code:', error);
-        statusMessage.textContent = 'Error scanning QR Code.';
-        statusMessage.style.color = 'red';
-    }
-});
-
+    });
 </script>
 </body>
 </html>
+
 
 
 
