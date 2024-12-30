@@ -1,0 +1,55 @@
+<!-- views/schemes.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schemes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        h2 {
+            text-align: center;
+            color: #2735ff;
+        }
+        .scheme-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Current Schemes</h2>
+        
+        <div id="schemes-list">
+            <% if (schemes && schemes.length > 0) { %>
+                <% schemes.forEach(function(scheme) { %>
+                    <div class="scheme-item">
+                        <p><%= scheme.text %></p>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <p>No schemes available.</p>
+            <% } %>
+        </div>
+    </div>
+
+</body>
+</html>
