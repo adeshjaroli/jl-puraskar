@@ -24,6 +24,8 @@ const db = getDatabase(app); // Get reference to the Firebase Realtime Database
 
 const userRouter = express.Router();
 
+
+
 // Initialize session middleware
 userRouter.use(
     session({
@@ -43,12 +45,34 @@ userRouter.use(bodyParser.urlencoded({ extended: true }));
 userRouter.use(bodyParser.json());
 userRouter.use(express.urlencoded({ extended: true }));
 
-// Middleware to check if the user is logged in
-function isAuthenticated(req, res, next) {
-    if (req.session && req.session.mobileNumber) {
-        return next(); // Proceed if the user is logged in
-    }
-    res.redirect('/user'); // Redirect to login if not authenticated
+// Middleware to check if the user is logged in and active
+async function isAuthenticated(req, res, next) {
+  if (req.session && req.session.mobileNumber) {
+      const mobileNumber = req.session.mobileNumber;
+
+      try {
+          // Fetch user data from Firebase
+          const userRef = ref(db, `users/${mobileNumber}`);
+          const snapshot = await get(userRef);
+
+          if (snapshot.exists()) {
+              const user = snapshot.val();
+
+              if (user.isActive) {
+                  return next(); // Proceed if the user is active
+              } else {
+                  return res.status(403).send('User account is deactivated. Please contact support.');
+              }
+          } else {
+              return res.status(404).send('User not found');
+          }
+      } catch (err) {
+          console.error('Error verifying user:', err);
+          return res.status(500).send('Internal server error');
+      }
+  } else {
+      res.redirect('/user'); // Redirect to login if not authenticated
+  }
 }
 
 // Default route: Login page
@@ -853,8 +877,33 @@ userRouter.post('/edit-details/remove', isAuthenticated, async (req, res) => {
   }
 });
 
+/////////////////////////////////////
+
+// Endpoint to get all schemes
+userRouter.get('/schemes', (req, res) => {
+  const notificationsRef = ref(db, 'notifications');
+  
+  get(notificationsRef)
+      .then((snapshot) => {
+          const notifications = snapshot.val();
+          const notificationArray = [];
+          for (let id in notifications) {
+              notificationArray.push({ text: notifications[id].text });
+          }
+          res.render('schemes', { schemes: notificationArray }); // Render schemes.ejs with the data
+      })
+      .catch((error) => {
+          res.status(500).json({ error: 'Failed to fetch schemes' });
+      });
+});
 
 module.exports = userRouter;
+
+
+
+
+
+
 
 
 
