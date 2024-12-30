@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan QR</title>
     <script src="https://cdn.rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
-    <!-- Include FontAwesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-
     <style>
-        /* General Styles */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f7fc;
@@ -40,164 +37,144 @@
             font-size: 24px;
         }
 
-        /* QR Reader Area */
         #qr-reader {
             width: 100%;
             height: 400px;
-            position: relative;
-            overflow: hidden;
             margin-bottom: 10px;
-            margin-top: 10px;
         }
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        /* Input and Button Styles */
         .manual-entry {
-            margin-top: 10px;
+            margin-top: 20px;
         }
 
-        input[type="text"] {
+        input[type="text"], button {
             width: 100%;
             padding: 12px;
-            font-size: 16px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
+            margin-top: 10px;
             border-radius: 8px;
-            box-sizing: border-box;
+            border: 1px solid #ccc;
+            font-size: 16px;
         }
 
-        .qr-button {
-            padding: 14px 25px;
-            margin-top: 10px;
-            cursor: pointer;
+        button {
             background-color: #0066cc;
             color: white;
             border: none;
-            font-size: 16px;
-            border-radius: 8px;
-            width: 100%;
         }
 
-        .qr-button:hover {
+        button:hover {
             background-color: #005bb5;
         }
 
-        .qr-button:disabled {
-            background-color: #ddd;
-            cursor: not-allowed;
-        }
-
         #status-message {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #4CAF50;
-            display: none;
-        }
-
-        #camera-status {
             margin-top: 10px;
-            font-size: 14px;
-            color: red;
-        }
-
-        #toggle-camera {
-            font-size: 30px;
-            cursor: pointer;
-            color: #0066cc;
-            margin-top: 10px;
-        }
-
-        #toggle-camera:hover {
-            color: #005bb5;
+            font-size: 16px;
         }
     </style>
 </head>
-<body class="scan-qr-body">
+<body>
 
 <div class="dashboard-container">
     <div class="content-area">
-        <div class="camera-area">
+        <div>
             <h2>Scan QR Code</h2>
             <video id="qr-reader"></video>
             <p id="camera-status"></p>
-            <i id="toggle-camera" class="fas fa-camera-rotate"></i>
         </div>
 
         <div class="manual-entry">
             <h2>Enter Code Manually</h2>
-            <input type="text" id="manual-code" placeholder="Enter QR Code" />
-            <button class="qr-button" id="enter-code-btn">Submit Code</button>
+            <input type="text" id="manual-code" placeholder="Enter QR Code">
+            <button id="enter-code-btn">Submit Code</button>
             <p id="status-message"></p>
         </div>
     </div>
 </div>
 
 <script>
-    let scanner = new Instascan.Scanner({ video: document.getElementById('qr-reader'), mirror: false });
-    let currentCameraIndex = 0;
-    let cameras = [];
+  // Camera logic (from scan-qr.html)
+let scanner = new Instascan.Scanner({ video: document.getElementById('qr-reader'), mirror: false });
+let cameras = [];
 
-    function startScanner() {
-        const cameraStatus = document.getElementById("camera-status");
+function startScanner() {
+    const cameraStatus = document.getElementById("camera-status");
+    Instascan.Camera.getCameras()
+        .then((availableCameras) => {
+            cameras = availableCameras;
+            if (cameras.length > 0) {
+                scanner.start(cameras[0]).then(() => {
+                    cameraStatus.innerText = "Camera is active. Please scan a QR code.";
+                }).catch((error) => {
+                    cameraStatus.innerText = "Unable to start camera.";
+                    console.error(error);
+                });
+            } else {
+                cameraStatus.innerText = "No cameras found.";
+            }
+        })
+        .catch((error) => {
+            cameraStatus.innerText = "Error accessing camera.";
+            console.error(error);
+        });
+}
 
-        Instascan.Camera.getCameras()
-            .then(function (availableCameras) {
-                cameras = availableCameras;
+scanner.addListener('scan', (content) => {
+    const qrCodeField = document.getElementById('manual-code');
+    const statusMessage = document.getElementById('status-message');
 
-                if (cameras.length > 0) {
-                    currentCameraIndex = 0;
-                    startCamera(cameras[currentCameraIndex]);
-                } else {
-                    cameraStatus.innerText = "No cameras found.";
-                }
-            })
-            .catch(function (error) {
-                cameraStatus.innerText = "Error accessing camera: " + error.message;
-                console.error("Camera access error:", error);
-            });
+    // Set the scanned QR code into the input field
+    qrCodeField.value = content;
+
+    // Display the scanned QR code to the user
+    statusMessage.innerText = "QR Code scanned: " + content;
+    statusMessage.style.color = "blue";
+
+    // Automatically trigger the submit button click
+    document.getElementById('enter-code-btn').click();
+});
+
+window.onload = startScanner;
+
+// Manual or auto-submission logic
+document.getElementById('enter-code-btn').addEventListener('click', async () => {
+    const qrCode = document.getElementById('manual-code').value.trim();
+    const statusMessage = document.getElementById('status-message');
+
+    if (!qrCode) {
+        statusMessage.textContent = 'Please enter a QR code.';
+        statusMessage.style.color = 'red';
+        return;
     }
 
-    function startCamera(camera) {
-        const cameraStatus = document.getElementById("camera-status");
+    try {
+        const response = await fetch('/user/scan-qr', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ qrCode }),
+        });
 
-        scanner.start(camera)
-            .then(() => {
-                cameraStatus.innerText = "Camera is active. Please scan a QR code.";
-            })
-            .catch(error => {
-                cameraStatus.innerText = "Unable to start camera: " + error.message;
-                console.error("Scanner start error:", error);
-            });
-    }
+        const result = await response.json();
 
-    document.getElementById("toggle-camera").addEventListener("click", function () {
-        if (cameras.length > 1) {
-            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
-            startCamera(cameras[currentCameraIndex]);
+        if (result.success) {
+            statusMessage.textContent = `${result.message} Points added: ${result.points}`;
+            statusMessage.style.color = 'green';
         } else {
-            alert("No other cameras available to switch.");
+            statusMessage.textContent = result.message;
+            statusMessage.style.color = 'red';
         }
-    });
+    } catch (error) {
+        console.error('Error scanning QR Code:', error);
+        statusMessage.textContent = 'Error scanning QR Code.';
+        statusMessage.style.color = 'red';
+    }
+});
 
-    scanner.addListener('scan', function (content) {
-        document.getElementById("manual-code").value = content;
-        document.getElementById("status-message").innerText = "QR Code scanned: " + content;
-    });
-
-    window.onload = startScanner;
 </script>
-
 </body>
 </html>
+
 
 
 
