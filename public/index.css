@@ -99,6 +99,21 @@ body {
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
+ /* Verify OTP Button */
+.verify-otp-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #28a745, #218838); /* Green gradient for verification */
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
 .send-otp-btn:hover {
     transform: scale(1.05);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
