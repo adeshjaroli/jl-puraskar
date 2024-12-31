@@ -16,16 +16,24 @@
         <!-- Form Section -->
         <div class="form-container">
             <div class="form-box">
-               
-                
                 <!-- Login Heading -->
                 <h1 class="login-heading">Login to your account</h1>
-                <form action="/user/submit-mobile" method="POST">
-                <!-- Mobile Number Input -->
-                <input type="number" id="mobileNumber" name="mobileNumber" class="input-field" placeholder="Enter your mobile number" required />
+                <form id="otpForm" action="/user/verify-otp" method="POST">
+                    <!-- Mobile Number Input -->
+                    <div id="mobileSection">
+                        <input type="number" id="mobileNumber" name="mobileNumber" class="input-field" placeholder="Enter your mobile number" required />
+                        <button type="button" id="sendOtpBtn" class="send-otp-btn">Send OTP</button>
+                        <!-- OTP sent success message -->
+                        <p id="otpMessage" class="success-message" style="color: green; display: none;">OTP sent successfully!</p>
+                    </div>
 
-                <!-- Send OTP Button -->
-                <button class="send-otp-btn">Send OTP</button>
+                    <!-- OTP Input Section (Hidden initially) -->
+                    <div id="otpSection" style="display: none;">
+                        <input type="number" id="otp" name="otp" class="input-field" placeholder="Enter OTP" required />
+                        <button type="submit" id="verifyOtpBtn" class="verify-otp-btn">Verify OTP</button>
+                        <!-- OTP incorrect error message -->
+                        <p id="otpError" class="error-message" style="color: red; display: none;">Invalid OTP. Please try again.</p>
+                    </div>
                 </form>
                 <!-- Spacer and Help Section -->
                 <div class="help-section">
@@ -40,7 +48,78 @@
             </div>
         </div>
     </div>
-    
-    <script src="script.js"></script>
+
+    <script>
+        const otpMessage = document.getElementById('otpMessage');
+        const otpError = document.getElementById('otpError');
+
+        // Handle OTP sending
+        document.getElementById('sendOtpBtn').addEventListener('click', async function () {
+            const mobileNumber = document.getElementById('mobileNumber').value;
+
+            if (!/^\d{10}$/.test(mobileNumber)) {
+                otpMessage.style.display = 'none'; // Hide any previous success message
+                otpError.style.display = 'block';
+                otpError.textContent = 'Please enter a valid 10-digit mobile number.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/user/send-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mobileNumber })
+                });
+
+                if (response.ok) {
+                    otpError.style.display = 'none'; // Hide error message
+                    otpMessage.style.display = 'block'; // Show success message
+                    otpMessage.textContent = 'OTP sent successfully!';
+                    document.getElementById('mobileSection').style.display = 'none';
+                    document.getElementById('otpSection').style.display = 'block';
+                } else {
+                    otpMessage.style.display = 'none'; // Hide success message
+                    const error = await response.json();
+                    otpError.style.display = 'block';
+                    otpError.textContent = `Error: ${error.message}`;
+                }
+            } catch (error) {
+                otpMessage.style.display = 'none';
+                otpError.style.display = 'block';
+                otpError.textContent = 'Failed to send OTP. Please try again.';
+            }
+        });
+
+        // Handle OTP verification
+        document.getElementById('otpForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const mobileNumber = document.getElementById('mobileNumber').value;
+            const otp = document.getElementById('otp').value;
+
+            try {
+                const response = await fetch('/user/verify-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mobileNumber, otp })
+                });
+
+                if (response.ok) {
+                    otpError.style.display = 'none'; // Hide error message
+                    window.location.href = '/user/dashboard'; // Redirect to the dashboard
+                } else {
+                    otpError.style.display = 'block';
+                    otpError.textContent = 'Invalid OTP. Please try again.';
+                }
+            } catch (error) {
+                otpError.style.display = 'block';
+                otpError.textContent = 'Failed to verify OTP. Please try again.';
+            }
+        });
+    </script>
 </body>
 </html>
+
