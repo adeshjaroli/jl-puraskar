@@ -24,7 +24,11 @@ const db = getDatabase(app); // Get reference to the Firebase Realtime Database
 
 const userRouter = express.Router();
 
-
+// Fast2SMS API details
+const FAST2SMS_URL = 'https://www.fast2sms.com/dev/bulkV2';
+const FAST2SMS_API_KEY = 'haltVXGKcRr1psUDTBv8HQWMkw6YJ3moSOgCn5yEfd79NZi2I0c7FQRq5sgLVJWf3HvbS8ICoMty0Bn4'; // Replace with your Fast2SMS API Key
+const SENDER_ID = 'RJHIND';
+const TEMPLATE_ID = '161703'; // Replace with your DLT-approved template ID
 
 // Initialize session middleware
 userRouter.use(
@@ -47,33 +51,84 @@ userRouter.use(express.urlencoded({ extended: true }));
 
 // Middleware to check if the user is logged in and active
 async function isAuthenticated(req, res, next) {
-  if (req.session && req.session.mobileNumber) {
-      const mobileNumber = req.session.mobileNumber;
+    if (req.session && req.session.mobileNumber) {
+        const mobileNumber = req.session.mobileNumber;
 
-      try {
-          // Fetch user data from Firebase
-          const userRef = ref(db, `users/${mobileNumber}`);
-          const snapshot = await get(userRef);
+        try {
+            const userRef = ref(db, `users/${mobileNumber}`);
+            const snapshot = await get(userRef);
 
-          if (snapshot.exists()) {
-              const user = snapshot.val();
+            if (snapshot.exists()) {
+                const user = snapshot.val();
 
-              if (user.isActive) {
-                  return next(); // Proceed if the user is active
-              } else {
-                  return res.status(403).send('User account is deactivated. Please contact support.');
-              }
-          } else {
-              return res.status(404).send('User not found');
-          }
-      } catch (err) {
-          console.error('Error verifying user:', err);
-          return res.status(500).send('Internal server error');
-      }
-  } else {
-      res.redirect('/user'); // Redirect to login if not authenticated
-  }
+                if (user.isActive) {
+                    return next();
+                } else {
+                    return res.status(403).send('User account is deactivated. Please contact support.');
+                }
+            } else {
+                return res.status(404).send('User not found');
+            }
+        } catch (err) {
+            console.error('Error verifying user:', err);
+            return res.status(500).send('Internal server error');
+        }
+    } else {
+        res.redirect('/user'); // Redirect to login if not authenticated
+    }
 }
+
+// OTP Sending Route
+userRouter.post('/send-otp', async (req, res) => {
+    const { mobileNumber } = req.body;
+
+    if (!mobileNumber) {
+        return res.status(400).send('Mobile number is required.');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000); // Generate OTP
+
+    try {
+        req.session.otp = otp;
+        req.session.mobileNumber = mobileNumber;
+
+        const response = await axios.get(FAST2SMS_URL, {
+            params: {
+                authorization: FAST2SMS_API_KEY,
+                route: 'dlt',
+                sender_id: SENDER_ID,
+                message: TEMPLATE_ID,
+                variables_values: otp,
+                numbers: mobileNumber
+            }
+        });
+
+        if (response.data.return) {
+            res.status(200).send('OTP sent successfully.');
+        } else {
+            res.status(500).send('Failed to send OTP.');
+        }
+    } catch (err) {
+        console.error('Error sending OTP:', err);
+        res.status(500).send('Error sending OTP.');
+    }
+});
+
+// OTP Verification Route
+userRouter.post('/verify-otp', (req, res) => {
+    const { otp } = req.body;
+
+    if (!otp) {
+        return res.status(400).send('OTP is required.');
+    }
+
+    if (otp == req.session.otp) {
+        req.session.otp = null; // Clear OTP from session
+        res.status(200).send('OTP verified successfully.');
+    } else {
+        res.status(400).send('Invalid OTP. Please try again.');
+    }
+});
 
 // Default route: Login page
 userRouter.get('/', (req, res) => {
@@ -898,6 +953,18 @@ userRouter.get('/schemes', (req, res) => {
 });
 
 module.exports = userRouter;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
