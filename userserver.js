@@ -736,7 +736,7 @@ userRouter.post("/withdraw", isAuthenticated, async (req, res) => {
 
     return res.status(500).render("withdraw", {
       walletBalance: 0,
-      message: "An error occurred while processing your withdrawal. Please try again later.",
+      message: "Please Add Bank Account.. Go to Add Bank On Main Page",
       beneficiary_id: null,
     });
   }
@@ -953,6 +953,30 @@ userRouter.get('/schemes', (req, res) => {
 });
 
 module.exports = userRouter;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
