@@ -51,32 +51,34 @@ userRouter.use(express.urlencoded({ extended: true }));
 
 // Middleware to check if the user is logged in and active
 async function isAuthenticated(req, res, next) {
-    if (req.session && req.session.mobileNumber) {
-        const mobileNumber = req.session.mobileNumber;
+  if (req.session && req.session.mobileNumber) {
+      const mobileNumber = req.session.mobileNumber;
 
-        try {
-            const userRef = ref(db, `users/${mobileNumber}`);
-            const snapshot = await get(userRef);
+      try {
+        const userRef = ref(db, `users/${mobileNumber}`);
+        const snapshot = await get(userRef);
 
-            if (snapshot.exists()) {
-                const user = snapshot.val();
+        if (snapshot.exists()) {
+            const user = snapshot.val();
 
-                if (user.isActive) {
-                    return next();
-                } else {
-                    return res.status(403).send('User account is deactivated. Please contact support.');
-                }
+            if (user.isActive) {
+                return next(); // User is active, proceed to the next middleware
             } else {
-                return res.status(404).send('User not found');
+                return res.status(403).send('User account is deactivated. Please contact support.');
             }
-        } catch (err) {
-            console.error('Error verifying user:', err);
-            return res.status(500).send('Internal server error');
+        } else {
+            return res.redirect('/user/register'); // Redirect to register page if no user found
         }
-    } else {
-        res.redirect('/user'); // Redirect to login if not authenticated
-    }
+      } catch (err) {
+          console.error('Error verifying user:', err);
+          return res.status(500).send('Internal server error');
+      }
+  } else {
+      res.redirect('/user/'); // Redirect to login if not authenticated
+  }
 }
+
+
 
 // OTP Sending Route
 userRouter.post('/send-otp', async (req, res) => {
@@ -136,28 +138,96 @@ userRouter.get('/', (req, res) => {
 });
 
 // Registration page: Only accessible after login
-userRouter.get('/register', isAuthenticated, async (req, res) => {
-    const mobileNumber = req.session.mobileNumber;
+userRouter.get('/register', async (req, res) => {
+  const mobileNumber = req.session.mobileNumber;
 
-    try {
-        const userRef = ref(db, `users/${mobileNumber}`);
-        const snapshot = await get(userRef);
+  // If the user is already logged in, check if they're registered
+  if (!mobileNumber) {
+      return res.redirect('/user/'); // Redirect to login if no session
+  }
 
-        if (!snapshot.exists()) {
-            return res.status(404).send('User not found');
-        }
+  try {
+      const userRef = ref(db, `users/${mobileNumber}`);
+      const snapshot = await get(userRef);
 
-        const user = snapshot.val();
+      // If user does not exist in Firebase, open the registration page
+      if (!snapshot.exists()) {
+          console.log('User not found in Firebase. Opening registration page.');
+          return res.render('register', { mobileNumber });
+      }
 
-        if (user.isRegistered) {
-            return res.redirect('/user/dashboard'); // Redirect if already registered
-        }
+      const user = snapshot.val();
 
-        res.render('register', { mobileNumber });
-    } catch (err) {
-        return res.status(500).send('Error reading user data');
-    }
+      // Redirect to dashboard if the user is already registered
+      if (user.isRegistered) {
+          return res.redirect('/user/dashboard');
+      }
+
+      // Render registration page for unregistered users
+      res.render('register', { mobileNumber });
+  } catch (err) {
+      console.error('Error accessing Firebase:', err);
+      return res.status(500).send('Error accessing user data');
+  }
 });
+
+
+// Registration form submission
+userRouter.post('/register', async (req, res) => {
+  const { mobileNumber, fullName, dob, userType, address, pinCode, state, city } = req.body;
+
+  try {
+      const userRef = ref(db, `users/${mobileNumber}`);
+      const snapshot = await get(userRef);
+
+      // If user doesn't exist, create a new user
+      if (!snapshot.exists()) {
+          const newUser = {
+              mobileNumber,
+              fullName,
+              dob,
+              userType,
+              address,
+              pinCode,
+              state,
+              city,
+              walletBalance: 0.0,  // Default wallet balance
+              serialNumber: Date.now(),  // Generate unique serial number
+              status: 'active',
+              isRegistered: true,  // Mark as registered
+              isActive: true,  // Mark as active
+          };
+
+          await set(userRef, newUser);
+          console.log('User created and marked as registered');
+      } else {
+          const user = snapshot.val();
+          if (user.isRegistered) {
+              return res.redirect('/user/dashboard');  // Already registered, redirect to dashboard
+          }
+
+          // Update user details and mark as registered
+          await update(userRef, {
+              fullName,
+              dob,
+              userType,
+              address,
+              pinCode,
+              state,
+              city,
+              walletBalance: user.walletBalance || 0,
+              isRegistered: true,
+              isActive: true
+          });
+      }
+
+      res.redirect('/user/dashboard');  // Redirect to dashboard after successful registration
+  } catch (err) {
+      console.error('Error saving user data:', err);
+      return res.status(500).send('Error saving user data');
+  }
+});
+
 
 // Dashboard: Protected route
 userRouter.get('/dashboard', isAuthenticated, async (req, res) => {
@@ -278,6 +348,7 @@ userRouter.post('/register', async (req, res) => {
     } catch (err) {
         return res.status(500).send('Error saving user data');
     }
+  
 });
 
 // QR Code scanning logic
@@ -736,7 +807,7 @@ userRouter.post("/withdraw", isAuthenticated, async (req, res) => {
 
     return res.status(500).render("withdraw", {
       walletBalance: 0,
-      message: "Please Add Bank Account.. Go to Add Bank On Main Page",
+      message: "An error occurred while processing your withdrawal. Please try again later.",
       beneficiary_id: null,
     });
   }
@@ -953,6 +1024,18 @@ userRouter.get('/schemes', (req, res) => {
 });
 
 module.exports = userRouter;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
