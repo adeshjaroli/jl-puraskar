@@ -30,7 +30,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin: 0px;
-    margin-bottom: 0px;
+    margin-bottom: 15px;
     padding: 5px 20px; /* Reduced padding */
     position: sticky; /* This makes the top bar stick to the top */
     top: 0; /* Ensures it's positioned at the top */
@@ -40,9 +40,8 @@ body {
 
 /* Logo */
 .logo {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%; /* Optional: make it circular if the logo supports it */
+    width: 150px;
+    height: auto;
 }
 
 /* Logout Button */
@@ -273,6 +272,10 @@ body {
         height: 35px;
     }
 }
+
+
+
+
 
 
 
