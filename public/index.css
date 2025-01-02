@@ -13,7 +13,7 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    background: linear-gradient(135deg, #004aad, #7bb4ff); /* Vibrant gradient */
+    background: linear-gradient(135deg, #ffffff, #ffffff); /* Vibrant gradient */
     padding: 20px;
 }
 
@@ -32,9 +32,10 @@ body {
 }
 
 .logo {
-    width: 150px;
+    width: 300px;
     height: auto;
     transition: transform 0.3s ease-in-out;
+    max-width: 100%;  /* Ensure the logo doesn't exceed the container's width */
 }
 
 .logo:hover {
@@ -182,10 +183,13 @@ body {
         padding: 12px;
     }
 
-    .logo {
-        width: 120px;
+  
+        /* Increase logo size on tablets */
+        .logo {
+            width: 180px; /* Larger size for mobile/tablet */
+        }
     }
-}
+
 
 @media (max-width: 480px) {
     .welcome-heading {
@@ -194,6 +198,9 @@ body {
 
     .login-heading {
         font-size: 16px;
+    }
+    .logo {
+        width: 250px; /* Larger logo for small screens */
     }
 }
 
